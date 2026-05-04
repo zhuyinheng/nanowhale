@@ -6,8 +6,8 @@ A ~110M parameter language model trained from scratch using the **DeepSeek-V4 ar
 
 | Model | Description | Link |
 |---|---|---|
-| **nanowhale-100m-base** | Pretrained base model (5K steps on FineWeb-Edu) | [🤗 Hub](https://huggingface.co/HuggingFaceTB/nanowhale-100m-base) |
-| **nanowhale-100m** | SFT chat model (3K steps on SmolTalk) | [🤗 Hub](https://huggingface.co/HuggingFaceTB/nanowhale-100m) |
+| **nanowhale-100m-base** | Pretrained base model (5K steps on FineWeb-Edu) | [🤗 Hub](https://huggingface.co/cmpatino/nanowhale-100m-base) |
+| **nanowhale-100m** | SFT chat model (3K steps on SmolTalk) | [🤗 Hub](https://huggingface.co/cmpatino/nanowhale-100m) |
 
 ## Architecture
 

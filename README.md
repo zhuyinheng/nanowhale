@@ -60,7 +60,13 @@ The model implements the full DeepSeek-V4 feature set at miniature scale:
 
 ## Architecture viewer
 
-Open `scripts/viz/index.html` in any browser (double-click — no server needed).
+Live site: **https://zhuyinheng.github.io/nanowhale/** (deployed by
+`.github/workflows/pages.yml` on every push to `main` that touches
+`scripts/viz/**`). One-time setup: GitHub *Settings → Pages → Source: GitHub
+Actions*.
+
+You can also open `scripts/viz/index.html` directly in any browser (double-click
+— no server needed).
 The page has three tabs:
 
 1. **Tensors (Netron)** — embedded [netron.app](https://netron.app) loading the trained

@@ -45,14 +45,9 @@ The model implements the full DeepSeek-V4 feature set at miniature scale:
 │   ├── count_params.py              # Parameter counting
 │   ├── prepare_data.py              # Data preparation
 │   ├── inspect_deepseek_v4.py       # Architecture inspection
-│   └── viz/                         # Static architecture viewer (open index.html)
-│       ├── index.html               # — single-file viewer (Netron iframe + compute graph + module tree)
-│       ├── nanowhale_arch.svg       # — full compute graph (every nn.Module)
-│       ├── nanowhale_overview.svg   # — high-level compute graph
-│       ├── arch.json                # — module tree with param counts and shapes
-│       ├── dump_arch.py             # — regenerates arch.json
-│       ├── build_graph.py           # — regenerates the SVGs (uses torchview)
-│       └── build_html.py            # — assembles index.html from template + JSON + SVG
+│   └── viz/                         # Static architecture viewer
+│       ├── index.html               # — hand-drawn isometric pipeline (single file)
+│       └── e2e_test.py              # — Playwright regression test
 └── tokenizer/
     ├── tokenizer.json
     └── tokenizer_config.json
@@ -66,20 +61,27 @@ Live site: **https://zhuyinheng.github.io/nanowhale/** (deployed by
 Actions*.
 
 You can also open `scripts/viz/index.html` directly in any browser (double-click
-— no server needed; the ONNX file is fetched from `raw.githubusercontent.com`).
+— no server, no internet, no dependencies).
 
-The three tabs are:
+`scripts/viz/index.html` is a single self-contained page that draws the full
+nanowhale forward pass top-to-bottom as isometric blocks:
 
-1. **Netron (interactive)** — `netron.app` embedded in an iframe. A switch at
-   the top toggles between
-   - *Compute graph* — a 1.2 MB ONNX file (`nanowhale.onnx`) traced from the
-     real model with `export_params=False`, so only the graph structure is
-     present (no weight values). MoE routing is specialised at trace time.
-   - *Weights* — the full 442 MB `model.safetensors` served from the HF Hub.
-2. **Compute graph (SVG)** — module-level overview rendered by `torchview`,
-   with pan/zoom.
-3. **Module tree** — collapsible `nn.Module` / `nn.Parameter` tree with
-   parameter counts and shapes, plus a search box.
+```
+tokens → embed_tokens → h₀ → HC expand → h_hc (4 copies)
+   → 8 × DeepseekV4Block
+       (HC pre → attn_norm → MLA → HC post)
+       (HC pre → ffn_norm → MoE → HC post)
+   → hc_head (4 → 1) → final RMSNorm → lm_head → logits
+```
+
+Layer 0 is expanded by default to show the MLA / MoE / HC substructure;
+layers 1–7 are collapsed cards (click their header to expand). Click any
+block to open the right-hand panel with that operation's formula, tensor
+shape transitions and parameter count.
+
+`scripts/viz/e2e_test.py` is a Playwright regression test that serves the
+page on localhost, asserts every section renders, and that clicks update
+the panel.
 The page has three tabs:
 
 1. **Tensors (Netron)** — embedded [netron.app](https://netron.app) loading the trained

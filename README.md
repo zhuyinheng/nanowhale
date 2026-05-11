@@ -44,11 +44,32 @@ The model implements the full DeepSeek-V4 feature set at miniature scale:
 │   ├── upload_to_hub.py             # Hub upload utility
 │   ├── count_params.py              # Parameter counting
 │   ├── prepare_data.py              # Data preparation
-│   └── inspect_deepseek_v4.py       # Architecture inspection
+│   ├── inspect_deepseek_v4.py       # Architecture inspection
+│   └── viz/                         # Static architecture viewer (open index.html)
+│       ├── index.html               # — single-file viewer (Netron iframe + compute graph + module tree)
+│       ├── nanowhale_arch.svg       # — full compute graph (every nn.Module)
+│       ├── nanowhale_overview.svg   # — high-level compute graph
+│       ├── arch.json                # — module tree with param counts and shapes
+│       ├── dump_arch.py             # — regenerates arch.json
+│       ├── build_graph.py           # — regenerates the SVGs (uses torchview)
+│       └── build_html.py            # — assembles index.html from template + JSON + SVG
 └── tokenizer/
     ├── tokenizer.json
     └── tokenizer_config.json
 ```
+
+## Architecture viewer
+
+Open `scripts/viz/index.html` in any browser (double-click — no server needed).
+The page has three tabs:
+
+1. **Tensors (Netron)** — embedded [netron.app](https://netron.app) loading the trained
+   `model.safetensors` directly from the HF Hub. Click any tensor to see its shape,
+   dtype and weight statistics.
+2. **Compute graph** — pan/zoom-able SVG of the module-level data flow
+   (`embed_tokens → 8 × DeepseekV4Block → hc_head → norm → lm_head`).
+3. **Module tree** — collapsible hierarchical view of every `nn.Module` /
+   `nn.Parameter` with parameter counts and tensor shapes, plus a search box.
 
 ## Quick Start
 

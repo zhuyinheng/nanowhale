@@ -47,11 +47,13 @@ The model implements the full DeepSeek-V4 feature set at miniature scale:
 │   ├── inspect_deepseek_v4.py       # Architecture inspection
 │   └── viz/                         # Static architecture viewer (open index.html)
 │       ├── index.html               # — single-file viewer (Netron iframe + compute graph + module tree)
+│       ├── nanowhale.onnx           # — tiny-vocab ONNX export for Netron's compute graph
 │       ├── nanowhale_arch.svg       # — full compute graph (every nn.Module)
 │       ├── nanowhale_overview.svg   # — high-level compute graph
 │       ├── arch.json                # — module tree with param counts and shapes
 │       ├── dump_arch.py             # — regenerates arch.json
 │       ├── build_graph.py           # — regenerates the SVGs (uses torchview)
+│       ├── export_onnx.py           # — regenerates nanowhale.onnx (for Netron)
 │       └── build_html.py            # — assembles index.html from template + JSON + SVG
 └── tokenizer/
     ├── tokenizer.json
@@ -66,27 +68,19 @@ Live site: **https://zhuyinheng.github.io/nanowhale/** (deployed by
 Actions*.
 
 You can also open `scripts/viz/index.html` directly in any browser (double-click
-— no server needed; the ONNX file is fetched from `raw.githubusercontent.com`).
+— no server needed).
 
-The three tabs are:
-
-1. **Netron (interactive)** — `netron.app` embedded in an iframe. A switch at
-   the top toggles between
-   - *Compute graph* — a 1.2 MB ONNX file (`nanowhale.onnx`) traced from the
-     real model with `export_params=False`, so only the graph structure is
-     present (no weight values). MoE routing is specialised at trace time.
-   - *Weights* — the full 442 MB `model.safetensors` served from the HF Hub.
-2. **Compute graph (SVG)** — module-level overview rendered by `torchview`,
-   with pan/zoom.
-3. **Module tree** — collapsible `nn.Module` / `nn.Parameter` tree with
-   parameter counts and shapes, plus a search box.
 The page has three tabs:
 
-1. **Tensors (Netron)** — embedded [netron.app](https://netron.app) loading the trained
-   `model.safetensors` directly from the HF Hub. Click any tensor to see its shape,
-   dtype and weight statistics.
-2. **Compute graph** — pan/zoom-able SVG of the module-level data flow
-   (`embed_tokens → 8 × DeepseekV4Block → hc_head → norm → lm_head`).
+1. **Compute graph (Netron)** — embedded [netron.app](https://netron.app) loading
+   `nanowhale.onnx` (a tiny-vocab ONNX export of this exact architecture, ~3 MB).
+   You get the full interactive op-level graph: click any node for its shape,
+   inputs, attributes; click any tensor for its values. The link in the banner
+   also opens Netron on the trained `model.safetensors` from the HF Hub if you'd
+   rather inspect the real weights.
+2. **Compute graph (overview)** — pan/zoom-able SVG of the module-level data flow
+   (`embed_tokens → 8 × DeepseekV4Block → hc_head → norm → lm_head`), rendered
+   by torchview.
 3. **Module tree** — collapsible hierarchical view of every `nn.Module` /
    `nn.Parameter` with parameter counts and tensor shapes, plus a search box.
 

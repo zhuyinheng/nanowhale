@@ -170,8 +170,8 @@
 </header>
 
 <nav class="tabs">
-  <button class="active" data-tab="netron">🔍 Tensors (Netron, interactive)</button>
-  <button data-tab="graph">📈 Compute graph (overview)</button>
+  <button class="active" data-tab="netron">🔍 Compute graph (Netron, interactive)</button>
+  <button data-tab="graph">📈 Compute graph (overview, torchview)</button>
   <button data-tab="tree">🌳 Module tree</button>
 </nav>
 
@@ -179,12 +179,15 @@
   <section id="pane-netron" class="pane active">
     <div class="banner">
       Live-loaded by <a href="https://netron.app" target="_blank">netron.app</a>
-      from <a href="https://huggingface.co/cmpatino/nanowhale-100m-base/blob/main/model.safetensors" target="_blank">HF safetensors</a> (442 MB, first load may take ~30s).
-      <a href="https://netron.app/?url=https%3A%2F%2Fhuggingface.co%2Fcmpatino%2Fnanowhale-100m-base%2Fresolve%2Fmain%2Fmodel.safetensors" target="_blank">Open full screen ↗</a>
+      from <a href="nanowhale.onnx" target="_blank">nanowhale.onnx</a>
+      — a tiny-vocab/seq export of this exact architecture (every op + every tensor).
+      <a href="https://netron.app/?url=https%3A%2F%2Fzhuyinheng.github.io%2Fnanowhale%2Fnanowhale.onnx" target="_blank">Open full screen ↗</a>
+      &middot;
+      <a href="https://netron.app/?url=https%3A%2F%2Fhuggingface.co%2Fcmpatino%2Fnanowhale-100m-base%2Fresolve%2Fmain%2Fmodel.safetensors" target="_blank">Trained weights (442 MB safetensors) ↗</a>
     </div>
     <iframe
       title="Netron viewer"
-      src="https://netron.app/?url=https%3A%2F%2Fhuggingface.co%2Fcmpatino%2Fnanowhale-100m-base%2Fresolve%2Fmain%2Fmodel.safetensors"
+      src="https://netron.app/?url=https%3A%2F%2Fzhuyinheng.github.io%2Fnanowhale%2Fnanowhale.onnx"
       referrerpolicy="no-referrer"
       sandbox="allow-scripts allow-same-origin allow-downloads allow-popups">
     </iframe>

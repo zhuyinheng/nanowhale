@@ -69,6 +69,7 @@ Actions*.
 
 You can also open `scripts/viz/index.html` directly in any browser (double-click
 — no server needed).
+
 The page has three tabs:
 
 1. **Compute graph (Netron)** — embedded [netron.app](https://netron.app) loading

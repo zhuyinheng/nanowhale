@@ -2,157 +2,222 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>nanowhale architecture viewer</title>
+<title>nanowhale — Architecture</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root {
-    --bg: #0f1115;
-    --panel: #161a22;
-    --panel-2: #1e2330;
-    --line: #2a3142;
-    --fg: #e6e8eb;
-    --muted: #8a93a6;
-    --accent: #5eb1ff;
-    --accent-2: #b18cff;
-    --good: #5ee0a0;
-    --warn: #ffb86b;
+    --bg: #14171d;
+    --bg-2: #1c2029;
+    --bg-3: #262b37;
+    --line: #303644;
+    --line-2: #404858;
+    --fg: #e9ecf1;
+    --fg-muted: #8a93a6;
+    --fg-faint: #5a6273;
+
+    --c-token:  #ffd166;
+    --c-embed:  #f4a261;
+    --c-tensor: #cad2c5;
+    --c-hc:     #f72585;
+    --c-norm:   #6ee7b7;
+    --c-attn:   #5eb1ff;
+    --c-moe:    #b18cff;
+    --c-rope:   #ff6e7f;
+    --c-sdpa:   #4cc9f0;
+    --c-lmhead: #f4a261;
+    --c-logits: #ffd166;
+    --c-router: #c084fc;
+    --c-expert: #a78bfa;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--fg);
-               font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  a { color: var(--accent); text-decoration: none; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--fg);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 13.5px; line-height: 1.5;
+    overflow: hidden; height: 100vh;
+  }
+  code, .mono, .formula {
+    font-family: ui-monospace, "JetBrains Mono", SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+  }
+  a { color: var(--c-attn); text-decoration: none; }
   a:hover { text-decoration: underline; }
-  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
 
   header {
-    padding: 14px 22px;
+    height: 56px;
     border-bottom: 1px solid var(--line);
-    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
-    background: linear-gradient(180deg, #141822 0%, #0f1115 100%);
+    background: linear-gradient(180deg, #1a1f29 0%, #14171d 100%);
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 20px;
   }
-  header .title { font-size: 18px; font-weight: 600; letter-spacing: 0.2px; }
-  header .title .whale { font-size: 20px; }
-  header .sub { color: var(--muted); font-size: 12.5px; }
-  header .stats { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+  header .title { font-size: 15px; font-weight: 600; letter-spacing: 0.3px; }
+  header .title .whale { font-size: 18px; vertical-align: -2px; }
+  header .sub { color: var(--fg-muted); font-size: 12px; }
+  header .chips { margin-left: auto; display: flex; flex-wrap: wrap; gap: 6px; }
   header .chip {
-    background: var(--panel); border: 1px solid var(--line);
-    padding: 4px 10px; border-radius: 999px; font-size: 12px;
+    background: var(--bg-2); border: 1px solid var(--line);
+    padding: 4px 10px; border-radius: 999px; font-size: 11.5px;
   }
-  header .chip b { color: var(--accent); font-weight: 600; }
+  header .chip b { color: var(--c-attn); font-weight: 600; margin-left: 4px; }
 
-  nav.tabs {
-    display: flex; gap: 2px; padding: 0 14px; border-bottom: 1px solid var(--line);
-    background: var(--panel);
-  }
-  nav.tabs button {
-    background: transparent; color: var(--muted); border: 0;
-    padding: 11px 16px; cursor: pointer; font-size: 13px;
-    border-bottom: 2px solid transparent;
-  }
-  nav.tabs button:hover { color: var(--fg); }
-  nav.tabs button.active { color: var(--fg); border-bottom-color: var(--accent); }
-
-  main { position: relative; height: calc(100vh - 110px); }
-  .pane { position: absolute; inset: 0; display: none; }
-  .pane.active { display: block; }
-
-  /* --- Netron pane --- */
-  #pane-netron iframe {
-    width: 100%; height: 100%; border: 0; background: #fff;
-  }
-  #pane-netron .banner {
-    position: absolute; top: 10px; right: 14px; z-index: 2;
-    background: rgba(15,17,21,0.85); color: var(--muted);
-    padding: 7px 12px; border-radius: 8px; font-size: 12px;
-    border: 1px solid var(--line);
-  }
-  #pane-netron .banner a { margin-left: 8px; }
-
-  /* --- Compute graph pane --- */
-  #pane-graph { background: #ffffff; overflow: hidden; }
-  #pane-graph .controls {
-    position: absolute; top: 10px; left: 10px; z-index: 2;
-    background: #fff; border: 1px solid #d0d7e2; border-radius: 8px;
-    padding: 6px 8px; display: flex; gap: 4px; align-items: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08); color: #333;
-  }
-  #pane-graph .controls button {
-    background: #f4f6fa; border: 1px solid #d0d7e2; padding: 4px 9px;
-    cursor: pointer; border-radius: 5px; font-size: 12px;
-  }
-  #pane-graph .controls button:hover { background: #eaeef5; }
-  #pane-graph .controls .label { color: #666; font-size: 11.5px; padding: 0 6px; }
-  #pane-graph .svg-host { width: 100%; height: 100%; cursor: grab; user-select: none; }
-  #pane-graph .svg-host.grabbing { cursor: grabbing; }
-  #pane-graph .svg-host svg { width: 100%; height: 100%; display: block; }
-  #pane-graph .legend {
-    position: absolute; bottom: 12px; left: 12px; background: #fff;
-    border: 1px solid #d0d7e2; padding: 8px 10px; border-radius: 8px;
-    font-size: 11px; color: #333; line-height: 1.55;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  }
-  #pane-graph .download {
-    position: absolute; top: 10px; right: 10px; z-index: 2; background: #fff;
-    border: 1px solid #d0d7e2; padding: 5px 10px; border-radius: 6px;
-    color: #2a64b8; font-size: 12px;
+  main {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    height: calc(100vh - 56px);
   }
 
-  /* --- Tree pane --- */
-  #pane-tree {
-    display: none; grid-template-columns: 1fr 360px; gap: 0;
-    background: var(--panel);
+  #canvas-wrap {
+    position: relative; overflow: hidden;
+    background: radial-gradient(circle at 50% 30%, #1d222d 0%, var(--bg) 70%);
+    cursor: grab;
   }
-  #pane-tree.active { display: grid; }
-  .tree-wrap {
-    overflow: auto; padding: 16px 18px;
-    background: var(--bg);
-  }
-  .tree-wrap .search {
-    width: 100%; padding: 9px 12px; margin-bottom: 12px;
-    background: var(--panel); color: var(--fg);
-    border: 1px solid var(--line); border-radius: 7px; font-size: 13px;
-  }
-  .tree ul { list-style: none; padding-left: 18px; margin: 0; }
-  .tree li { margin: 1px 0; }
-  .tree .node {
-    display: inline-flex; align-items: center; gap: 7px;
-    padding: 3px 8px; border-radius: 5px; cursor: pointer;
-    font-size: 13px; color: var(--fg);
-  }
-  .tree .node:hover { background: var(--panel-2); }
-  .tree .node.selected { background: #244069; color: #fff; }
-  .tree .twist {
-    display: inline-block; width: 10px; color: var(--muted);
-    transition: transform 0.12s;
-  }
-  .tree li.collapsed > .node .twist { transform: rotate(-90deg); }
-  .tree li.leaf > .node .twist { visibility: hidden; }
-  .tree li.collapsed > ul { display: none; }
-  .tree .type { color: var(--accent-2); font-family: ui-monospace, monospace; font-size: 12px; }
-  .tree .name { font-family: ui-monospace, monospace; font-size: 12.5px; }
-  .tree .params { color: var(--muted); font-size: 11.5px; margin-left: 6px; }
-  .tree .shape { color: var(--good); font-size: 11px; }
-  .tree li.hide { display: none; }
+  #canvas-wrap.grabbing { cursor: grabbing; }
+  #scene { display: block; user-select: none; }
 
-  .detail {
-    border-left: 1px solid var(--line); padding: 16px 18px; overflow: auto;
-    background: var(--panel);
+  .controls {
+    position: absolute; right: 14px; top: 14px;
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: 8px; padding: 4px;
+    display: flex; gap: 2px; z-index: 10;
   }
-  .detail h3 { margin: 0 0 10px 0; font-size: 14px; color: var(--accent); }
-  .detail .kv { display: grid; grid-template-columns: 110px 1fr; gap: 6px 12px; font-size: 12.5px; }
-  .detail .kv dt { color: var(--muted); font-family: ui-monospace, monospace; }
-  .detail .kv dd { margin: 0; font-family: ui-monospace, monospace; word-break: break-all; }
-  .detail .bar { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; margin-top: 4px; }
-  .detail .bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
-  .detail .note {
-    color: var(--muted); font-size: 12px; line-height: 1.55; margin-top: 18px;
-    border-top: 1px dashed var(--line); padding-top: 12px;
+  .controls button {
+    background: transparent; color: var(--fg-muted); border: 0;
+    padding: 6px 10px; font-size: 13px; cursor: pointer; border-radius: 5px;
+  }
+  .controls button:hover { background: var(--bg-3); color: var(--fg); }
+  .controls .sep { width: 1px; background: var(--line); margin: 4px 2px; }
+  .controls .scale-label {
+    color: var(--fg-muted); padding: 6px 8px; font-size: 11.5px;
+    font-family: ui-monospace, monospace; min-width: 48px; text-align: center;
   }
 
-  footer { display: none; }
-  @media (max-width: 800px) {
-    #pane-tree.active { grid-template-columns: 1fr; }
-    .detail { border-left: 0; border-top: 1px solid var(--line); }
+  .legend {
+    position: absolute; left: 14px; bottom: 14px;
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px 12px;
+    font-size: 11px; line-height: 1.7; z-index: 10;
+    color: var(--fg-muted);
+  }
+  .legend .row { display: flex; align-items: center; gap: 8px; }
+  .legend .sw {
+    width: 12px; height: 12px; border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+
+  #panel {
+    border-left: 1px solid var(--line);
+    background: var(--bg-2);
+    overflow-y: auto;
+    padding: 20px 22px;
+  }
+  #panel h2 {
+    margin: 0 0 4px 0; font-size: 15px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  #panel h2 .badge {
+    display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+  }
+  #panel .kind {
+    color: var(--fg-faint); font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.6px; margin: 0 0 14px 0;
+  }
+  #panel .label {
+    color: var(--fg-faint); font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.5px; margin: 12px 0 4px 0;
+  }
+  #panel .formula {
+    background: var(--bg-3); border: 1px solid var(--line);
+    border-radius: 6px; padding: 9px 11px; margin: 6px 0;
+    color: var(--c-tensor); white-space: pre-wrap; line-height: 1.55;
+  }
+  #panel .shape {
+    color: var(--c-norm); font-family: ui-monospace, monospace; font-size: 12px;
+  }
+  #panel .params {
+    color: var(--c-attn); font-family: ui-monospace, monospace; font-size: 12px;
+  }
+  #panel .desc { color: var(--fg); font-size: 13px; line-height: 1.6; }
+  #panel .desc p { margin: 6px 0; }
+  #panel .pill {
+    display: inline-block; padding: 2px 8px;
+    background: var(--bg-3); border: 1px solid var(--line);
+    border-radius: 999px; font-size: 11px; margin-right: 4px;
+    color: var(--fg-muted);
+  }
+  #panel .empty {
+    color: var(--fg-muted); font-size: 13px; padding: 32px 0; text-align: center;
+  }
+  #panel .empty .hint {
+    font-size: 11.5px; color: var(--fg-faint); margin-top: 8px;
+  }
+
+  /* SVG block styles */
+  .block { cursor: pointer; }
+  .block:hover .face { filter: brightness(1.15); }
+  .block.selected .face { filter: brightness(1.3); }
+  .block.selected .outline {
+    stroke: #ffffff; stroke-width: 2; stroke-dasharray: 4 3;
+  }
+  .face { stroke: rgba(0,0,0,0.35); stroke-width: 0.5; }
+  .face.top { filter: brightness(0.78); }
+  .face.right { filter: brightness(0.6); }
+  .outline { fill: none; stroke: rgba(255,255,255,0.07); stroke-width: 1; }
+  .label {
+    fill: #0d0f14; font-size: 12px; font-weight: 600;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    pointer-events: none;
+  }
+  .label.light { fill: #ffffff; }
+  .sublabel {
+    fill: rgba(0,0,0,0.55); font-size: 10.5px;
+    font-family: ui-monospace, monospace; pointer-events: none;
+  }
+  .sublabel.light { fill: rgba(255,255,255,0.75); }
+
+  /* Layer card */
+  .layer-card .outline-rect {
+    stroke: var(--line-2); stroke-width: 1.5;
+    fill: rgba(255,255,255,0.012);
+  }
+  .layer-card.expanded .outline-rect { stroke: rgba(94, 177, 255, 0.4); }
+  .layer-card .header-bg { fill: var(--bg-3); stroke: var(--line); stroke-width: 1; }
+  .layer-card .header-label {
+    fill: var(--fg); font-size: 13px; font-weight: 600; pointer-events: none;
+  }
+  .layer-card .header-sub {
+    fill: var(--fg-muted); font-size: 11px;
+    font-family: ui-monospace, monospace; pointer-events: none;
+  }
+  .layer-card .toggle {
+    fill: var(--fg-muted); font-size: 12px; pointer-events: none;
+  }
+  .layer-card .header { cursor: pointer; }
+  .layer-card .header:hover .header-bg { fill: var(--line); }
+
+  /* Sub-region inside layer (MLA, MoE) */
+  .region .outline-rect {
+    stroke: rgba(255,255,255,0.08); stroke-width: 1;
+    stroke-dasharray: 3 3; fill: rgba(255,255,255,0.015);
+  }
+  .region-label {
+    fill: var(--fg-muted); font-size: 11px;
+    font-family: ui-monospace, monospace;
+    letter-spacing: 0.5px; pointer-events: none;
+  }
+
+  /* Arrows */
+  .arrow { stroke: var(--line-2); stroke-width: 1.2; fill: none; }
+  .arrow-head { fill: var(--line-2); }
+
+  /* Shape annotations */
+  .shape-tag {
+    fill: var(--c-norm); font-size: 10.5px;
+    font-family: ui-monospace, monospace; pointer-events: none;
+  }
+  .params-tag {
+    fill: var(--c-attn); font-size: 10.5px;
+    font-family: ui-monospace, monospace; pointer-events: none;
   }
 </style>
 </head>
@@ -160,1285 +225,902 @@
 
 <header>
   <div>
-    <div class="title"><span class="whale">🐳</span> nanowhale <span style="color:var(--muted);font-weight:400;font-size:13px">— DeepSeek-V4 ~110M architecture viewer</span></div>
-    <div class="sub">
-      Weights: <a href="https://huggingface.co/cmpatino/nanowhale-100m-base" target="_blank">cmpatino/nanowhale-100m-base</a>
-      &middot; Repo: <a href="https://github.com/zhuyinheng/nanowhale" target="_blank">zhuyinheng/nanowhale</a>
-    </div>
+    <div class="title"><span class="whale">🐳</span> nanowhale <span class="sub">— DeepSeek-V4 ~110M, hand-drawn architecture</span></div>
   </div>
-  <div class="stats" id="stats"></div>
+  <div class="chips" id="chips"></div>
 </header>
 
-<nav class="tabs">
-  <button class="active" data-tab="netron">🔍 Compute graph (Netron, interactive)</button>
-  <button data-tab="graph">📈 Compute graph (overview, torchview)</button>
-  <button data-tab="tree">🌳 Module tree</button>
-</nav>
-
 <main>
-  <section id="pane-netron" class="pane active">
-    <div class="banner">
-      Live-loaded by <a href="https://netron.app" target="_blank">netron.app</a>
-      from <a href="nanowhale.onnx" target="_blank">nanowhale.onnx</a>
-      — a tiny-vocab/seq export of this exact architecture (every op + every tensor).
-      <a href="https://netron.app/?url=https%3A%2F%2Fzhuyinheng.github.io%2Fnanowhale%2Fnanowhale.onnx" target="_blank">Open full screen ↗</a>
-      &middot;
-      <a href="https://netron.app/?url=https%3A%2F%2Fhuggingface.co%2Fcmpatino%2Fnanowhale-100m-base%2Fresolve%2Fmain%2Fmodel.safetensors" target="_blank">Trained weights (442 MB safetensors) ↗</a>
-    </div>
-    <iframe
-      title="Netron viewer"
-      src="https://netron.app/?url=https%3A%2F%2Fzhuyinheng.github.io%2Fnanowhale%2Fnanowhale.onnx"
-      referrerpolicy="no-referrer"
-      allow="downloads">
-    </iframe>
-  </section>
-
-  <section id="pane-graph" class="pane">
+  <div id="canvas-wrap">
     <div class="controls">
-      <button id="zoom-in">+</button>
       <button id="zoom-out">−</button>
-      <button id="zoom-reset">Reset</button>
-      <span class="label">drag to pan · scroll to zoom</span>
+      <span class="scale-label" id="scale-label">100%</span>
+      <button id="zoom-in">+</button>
+      <span class="sep"></span>
+      <button id="fit">Fit</button>
+      <button id="expand-all">Expand all layers</button>
     </div>
-    <a class="download" href="nanowhale_arch.svg" target="_blank">Detailed SVG (every op) ↗</a>
-    <div class="svg-host" id="svg-host"><!-- Generated by graphviz version 2.43.0 (0)
- -->
-<!-- Title: nanowhale (DeepSeek&#45;V4 ~110M) — overview Pages: 1 -->
-<svg width="806pt" height="2354pt"
- viewBox="0.00 0.00 805.63 2354.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-<g id="graph0" class="graph" transform="scale(0.98 0.98) rotate(0) translate(4 2392)">
-<title>nanowhale (DeepSeek&#45;V4 ~110M) — overview</title>
-<polygon fill="white" stroke="transparent" points="-4,4 -4,-2392 816,-2392 816,4 -4,4"/>
-<g id="clust1" class="cluster">
-<title>cluster_2</title>
-<polygon fill="none" stroke="black" stroke-dasharray="5,2" points="8,-163 8,-2348 804,-2348 804,-163 8,-163"/>
-<text text-anchor="middle" x="72" y="-2334.4" font-family="Times,serif" font-size="12.00">DeepseekV4Model</text>
-</g>
-<g id="clust2" class="cluster">
-<title>cluster_3</title>
-<polygon fill="none" stroke="black" stroke-dasharray="5,2" points="296,-8 296,-155 470,-155 470,-8 296,-8"/>
-<text text-anchor="middle" x="324" y="-141.4" font-family="Times,serif" font-size="12.00">Linear</text>
-</g>
-<!-- 0 -->
-<g id="node1" class="node">
-<title>0</title>
-<polygon fill="lightyellow" stroke="transparent" points="182,-2388 76,-2388 76,-2356 182,-2356 182,-2388"/>
-<polygon fill="none" stroke="black" points="76,-2356 76,-2388 146,-2388 146,-2356 76,-2356"/>
-<text text-anchor="start" x="81" y="-2375" font-family="Linux libertine" font-size="10.00">input&#45;tensor</text>
-<text text-anchor="start" x="92.5" y="-2364" font-family="Linux libertine" font-size="10.00">depth:0</text>
-<polygon fill="none" stroke="black" points="146,-2356 146,-2388 182,-2388 182,-2356 146,-2356"/>
-<text text-anchor="start" x="151" y="-2369.5" font-family="Linux libertine" font-size="10.00">(1, 8)</text>
-</g>
-<!-- 1 -->
-<g id="node2" class="node">
-<title>1</title>
-<polygon fill="#c1ffc1" stroke="transparent" points="217,-2319 41,-2319 41,-2277 217,-2277 217,-2319"/>
-<polygon fill="none" stroke="black" points="41,-2277 41,-2319 106,-2319 106,-2277 41,-2277"/>
-<text text-anchor="start" x="46" y="-2301" font-family="Linux libertine" font-size="10.00">Embedding</text>
-<text text-anchor="start" x="55" y="-2290" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="106,-2298 106,-2319 154,-2319 154,-2298 106,-2298"/>
-<text text-anchor="start" x="116" y="-2306" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="154,-2298 154,-2319 217,-2319 217,-2298 154,-2298"/>
-<text text-anchor="start" x="171" y="-2306" font-family="Linux libertine" font-size="10.00">(1, 8) </text>
-<polygon fill="none" stroke="black" points="106,-2277 106,-2298 154,-2298 154,-2277 106,-2277"/>
-<text text-anchor="start" x="111" y="-2285" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="154,-2277 154,-2298 217,-2298 217,-2277 154,-2277"/>
-<text text-anchor="start" x="159" y="-2285" font-family="Linux libertine" font-size="10.00">(1, 8, 320) </text>
-</g>
-<!-- 0&#45;&gt;1 -->
-<g id="edge1" class="edge">
-<title>0&#45;&gt;1</title>
-<path fill="none" stroke="black" d="M129,-2355.73C129,-2348.08 129,-2338.52 129,-2329.45"/>
-<polygon fill="black" stroke="black" points="132.5,-2329.17 129,-2319.17 125.5,-2329.17 132.5,-2329.17"/>
-</g>
-<!-- 9 -->
-<g id="node10" class="node">
-<title>9</title>
-<polygon fill="aliceblue" stroke="transparent" points="222,-2241 36,-2241 36,-2199 222,-2199 222,-2241"/>
-<polygon fill="none" stroke="black" points="36,-2199 36,-2241 99,-2241 99,-2199 36,-2199"/>
-<text text-anchor="start" x="41" y="-2223" font-family="Linux libertine" font-size="10.00">unsqueeze</text>
-<text text-anchor="start" x="49" y="-2212" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="99,-2220 99,-2241 147,-2241 147,-2220 99,-2220"/>
-<text text-anchor="start" x="109" y="-2228" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="147,-2220 147,-2241 222,-2241 222,-2220 147,-2220"/>
-<text text-anchor="start" x="158" y="-2228" font-family="Linux libertine" font-size="10.00">(1, 8, 320) </text>
-<polygon fill="none" stroke="black" points="99,-2199 99,-2220 147,-2220 147,-2199 99,-2199"/>
-<text text-anchor="start" x="104" y="-2207" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="147,-2199 147,-2220 222,-2220 222,-2199 147,-2199"/>
-<text text-anchor="start" x="152" y="-2207" font-family="Linux libertine" font-size="10.00">(1, 8, 1, 320) </text>
-</g>
-<!-- 1&#45;&gt;9 -->
-<g id="edge2" class="edge">
-<title>1&#45;&gt;9</title>
-<path fill="none" stroke="black" d="M129,-2276.63C129,-2268.82 129,-2259.73 129,-2251.18"/>
-<polygon fill="black" stroke="black" points="132.5,-2251.16 129,-2241.16 125.5,-2251.16 132.5,-2251.16"/>
-</g>
-<!-- 2 -->
-<g id="node3" class="node">
-<title>2</title>
-<polygon fill="aliceblue" stroke="transparent" points="598,-2319 448,-2319 448,-2277 598,-2277 598,-2319"/>
-<polygon fill="none" stroke="black" points="448,-2277 448,-2319 511,-2319 511,-2277 448,-2277"/>
-<text text-anchor="start" x="453" y="-2301" font-family="Linux libertine" font-size="10.00">unsqueeze</text>
-<text text-anchor="start" x="461" y="-2290" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="511,-2298 511,-2319 559,-2319 559,-2298 511,-2298"/>
-<text text-anchor="start" x="521" y="-2306" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="559,-2298 559,-2319 598,-2319 598,-2298 559,-2298"/>
-<text text-anchor="start" x="568.5" y="-2306" font-family="Linux libertine" font-size="10.00">(8,) </text>
-<polygon fill="none" stroke="black" points="511,-2277 511,-2298 559,-2298 559,-2277 511,-2277"/>
-<text text-anchor="start" x="516" y="-2285" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="559,-2277 559,-2298 598,-2298 598,-2277 559,-2277"/>
-<text text-anchor="start" x="564" y="-2285" font-family="Linux libertine" font-size="10.00">(1, 8) </text>
-</g>
-<!-- 3 -->
-<g id="node4" class="node">
-<title>3</title>
-<polygon fill="aliceblue" stroke="transparent" points="445,-2241 307,-2241 307,-2199 445,-2199 445,-2241"/>
-<polygon fill="none" stroke="black" points="307,-2199 307,-2241 358,-2241 358,-2199 307,-2199"/>
-<text text-anchor="start" x="312" y="-2223" font-family="Linux libertine" font-size="10.00">squeeze</text>
-<text text-anchor="start" x="314" y="-2212" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="358,-2220 358,-2241 406,-2241 406,-2220 358,-2220"/>
-<text text-anchor="start" x="368" y="-2228" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="406,-2220 406,-2241 445,-2241 445,-2220 406,-2220"/>
-<text text-anchor="start" x="411" y="-2228" font-family="Linux libertine" font-size="10.00">(1, 8) </text>
-<polygon fill="none" stroke="black" points="358,-2199 358,-2220 406,-2220 406,-2199 358,-2199"/>
-<text text-anchor="start" x="363" y="-2207" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="406,-2199 406,-2220 445,-2220 445,-2199 406,-2199"/>
-<text text-anchor="start" x="415.5" y="-2207" font-family="Linux libertine" font-size="10.00">(8,) </text>
-</g>
-<!-- 2&#45;&gt;3 -->
-<g id="edge3" class="edge">
-<title>2&#45;&gt;3</title>
-<path fill="none" stroke="black" d="M483.99,-2276.83C465.56,-2267.3 443.39,-2255.84 423.94,-2245.79"/>
-<polygon fill="black" stroke="black" points="425.42,-2242.61 414.93,-2241.13 422.21,-2248.83 425.42,-2242.61"/>
-</g>
-<!-- 12 -->
-<g id="node13" class="node">
-<title>12</title>
-<polygon fill="#c1ffc1" stroke="transparent" points="555.5,-2007 196.5,-2007 196.5,-1965 555.5,-1965 555.5,-2007"/>
-<polygon fill="none" stroke="black" points="197,-1965 197,-2007 296,-2007 296,-1965 197,-1965"/>
-<text text-anchor="start" x="202" y="-1989" font-family="Linux libertine" font-size="10.00">DeepseekV4Block</text>
-<text text-anchor="start" x="228" y="-1978" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="296,-1986 296,-2007 344,-2007 344,-1986 296,-1986"/>
-<text text-anchor="start" x="306" y="-1994" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="344,-1986 344,-2007 556,-2007 556,-1986 344,-1986"/>
-<text text-anchor="start" x="349" y="-1994" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320), (1, 1, 8, 8), (1, 8), (2, 8, 16) </text>
-<polygon fill="none" stroke="black" points="296,-1965 296,-1986 344,-1986 344,-1965 296,-1965"/>
-<text text-anchor="start" x="301" y="-1973" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="344,-1965 344,-1986 556,-1986 556,-1965 344,-1965"/>
-<text text-anchor="start" x="417.5" y="-1973" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320) </text>
-</g>
-<!-- 2&#45;&gt;12 -->
-<g id="edge4" class="edge">
-<title>2&#45;&gt;12</title>
-<path fill="none" stroke="black" d="M521.11,-2276.79C516.02,-2231.34 498.74,-2119.14 447,-2043 439.34,-2031.72 428.7,-2021.65 417.99,-2013.26"/>
-<polygon fill="black" stroke="black" points="419.94,-2010.36 409.83,-2007.19 415.76,-2015.97 419.94,-2010.36"/>
-</g>
-<!-- 13 -->
-<g id="node14" class="node">
-<title>13</title>
-<polygon fill="#c1ffc1" stroke="transparent" points="575.5,-1929 216.5,-1929 216.5,-1887 575.5,-1887 575.5,-1929"/>
-<polygon fill="none" stroke="black" points="217,-1887 217,-1929 316,-1929 316,-1887 217,-1887"/>
-<text text-anchor="start" x="222" y="-1911" font-family="Linux libertine" font-size="10.00">DeepseekV4Block</text>
-<text text-anchor="start" x="248" y="-1900" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="316,-1908 316,-1929 364,-1929 364,-1908 316,-1908"/>
-<text text-anchor="start" x="326" y="-1916" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="364,-1908 364,-1929 576,-1929 576,-1908 364,-1908"/>
-<text text-anchor="start" x="369" y="-1916" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320), (1, 1, 8, 8), (1, 8), (2, 8, 16) </text>
-<polygon fill="none" stroke="black" points="316,-1887 316,-1908 364,-1908 364,-1887 316,-1887"/>
-<text text-anchor="start" x="321" y="-1895" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="364,-1887 364,-1908 576,-1908 576,-1887 364,-1887"/>
-<text text-anchor="start" x="437.5" y="-1895" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320) </text>
-</g>
-<!-- 2&#45;&gt;13 -->
-<g id="edge5" class="edge">
-<title>2&#45;&gt;13</title>
-<path fill="none" stroke="black" d="M522.71,-2276.99C522.17,-2224.83 522.31,-2085.83 538,-2043 544.88,-2024.22 558.68,-2025.97 565,-2007 570.9,-1989.29 575.93,-1980.13 565,-1965 555.41,-1951.72 542.55,-1941.54 528.18,-1933.74"/>
-<polygon fill="black" stroke="black" points="529.56,-1930.52 519.05,-1929.19 526.44,-1936.78 529.56,-1930.52"/>
-</g>
-<!-- 14 -->
-<g id="node15" class="node">
-<title>14</title>
-<polygon fill="#c1ffc1" stroke="transparent" points="615.5,-1851 256.5,-1851 256.5,-1809 615.5,-1809 615.5,-1851"/>
-<polygon fill="none" stroke="black" points="257,-1809 257,-1851 356,-1851 356,-1809 257,-1809"/>
-<text text-anchor="start" x="262" y="-1833" font-family="Linux libertine" font-size="10.00">DeepseekV4Block</text>
-<text text-anchor="start" x="288" y="-1822" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="356,-1830 356,-1851 404,-1851 404,-1830 356,-1830"/>
-<text text-anchor="start" x="366" y="-1838" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="404,-1830 404,-1851 616,-1851 616,-1830 404,-1830"/>
-<text text-anchor="start" x="409" y="-1838" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320), (1, 1, 8, 8), (1, 8), (2, 8, 16) </text>
-<polygon fill="none" stroke="black" points="356,-1809 356,-1830 404,-1830 404,-1809 356,-1809"/>
-<text text-anchor="start" x="361" y="-1817" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="404,-1809 404,-1830 616,-1830 616,-1809 404,-1809"/>
-<text text-anchor="start" x="477.5" y="-1817" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320) </text>
-</g>
-<!-- 2&#45;&gt;14 -->
-<g id="edge6" class="edge">
-<title>2&#45;&gt;14</title>
-<path fill="none" stroke="black" d="M525.11,-2276.78C530.63,-2224.75 545.95,-2087.24 558,-2043 562.55,-2026.28 568.31,-2023.69 573,-2007 587.49,-1955.4 615.51,-1931.07 585,-1887 575.68,-1873.55 562.71,-1863.32 548.26,-1855.55"/>
-<polygon fill="black" stroke="black" points="549.61,-1852.31 539.1,-1851.02 546.51,-1858.59 549.61,-1852.31"/>
-</g>
-<!-- 15 -->
-<g id="node16" class="node">
-<title>15</title>
-<polygon fill="#c1ffc1" stroke="transparent" points="645.5,-1773 286.5,-1773 286.5,-1731 645.5,-1731 645.5,-1773"/>
-<polygon fill="none" stroke="black" points="287,-1731 287,-1773 386,-1773 386,-1731 287,-1731"/>
-<text text-anchor="start" x="292" y="-1755" font-family="Linux libertine" font-size="10.00">DeepseekV4Block</text>
-<text text-anchor="start" x="318" y="-1744" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="386,-1752 386,-1773 434,-1773 434,-1752 386,-1752"/>
-<text text-anchor="start" x="396" y="-1760" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="434,-1752 434,-1773 646,-1773 646,-1752 434,-1752"/>
-<text text-anchor="start" x="439" y="-1760" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320), (1, 1, 8, 8), (1, 8), (2, 8, 16) </text>
-<polygon fill="none" stroke="black" points="386,-1731 386,-1752 434,-1752 434,-1731 386,-1731"/>
-<text text-anchor="start" x="391" y="-1739" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="434,-1731 434,-1752 646,-1752 646,-1731 434,-1731"/>
-<text text-anchor="start" x="507.5" y="-1739" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320) </text>
-</g>
-<!-- 2&#45;&gt;15 -->
-<g id="edge7" class="edge">
-<title>2&#45;&gt;15</title>
-<path fill="none" stroke="black" d="M527.91,-2276.83C530.43,-2266.19 533.5,-2252.92 536,-2241 554.35,-2153.38 550.57,-2129.67 573,-2043 577.23,-2026.67 580.24,-2023.18 585,-2007 605.22,-1938.34 616.04,-1922.01 625,-1851 627.34,-1832.48 635.79,-1824.23 625,-1809 615.55,-1795.65 602.64,-1785.46 588.24,-1777.68"/>
-<polygon fill="black" stroke="black" points="589.61,-1774.46 579.1,-1773.15 586.5,-1780.73 589.61,-1774.46"/>
-</g>
-<!-- 16 -->
-<g id="node17" class="node">
-<title>16</title>
-<polygon fill="#c1ffc1" stroke="transparent" points="645.5,-1695 286.5,-1695 286.5,-1653 645.5,-1653 645.5,-1695"/>
-<polygon fill="none" stroke="black" points="287,-1653 287,-1695 386,-1695 386,-1653 287,-1653"/>
-<text text-anchor="start" x="292" y="-1677" font-family="Linux libertine" font-size="10.00">DeepseekV4Block</text>
-<text text-anchor="start" x="318" y="-1666" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="386,-1674 386,-1695 434,-1695 434,-1674 386,-1674"/>
-<text text-anchor="start" x="396" y="-1682" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="434,-1674 434,-1695 646,-1695 646,-1674 434,-1674"/>
-<text text-anchor="start" x="439" y="-1682" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320), (1, 1, 8, 8), (1, 8), (2, 8, 16) </text>
-<polygon fill="none" stroke="black" points="386,-1653 386,-1674 434,-1674 434,-1653 386,-1653"/>
-<text text-anchor="start" x="391" y="-1661" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="434,-1653 434,-1674 646,-1674 646,-1653 434,-1653"/>
-<text text-anchor="start" x="507.5" y="-1661" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320) </text>
-</g>
-<!-- 2&#45;&gt;16 -->
-<g id="edge8" class="edge">
-<title>2&#45;&gt;16</title>
-<path fill="none" stroke="black" d="M598.24,-2286.09C654.01,-2276.56 723.87,-2261.1 745,-2241 778,-2209.61 775,-2188.55 775,-2143 775,-2143 775,-2143 775,-1907 775,-1817.25 746.93,-1785.99 676,-1731 657.67,-1716.79 636.04,-1706.17 613.74,-1698.25"/>
-<polygon fill="black" stroke="black" points="614.75,-1694.89 604.15,-1695.01 612.51,-1701.52 614.75,-1694.89"/>
-</g>
-<!-- 17 -->
-<g id="node18" class="node">
-<title>17</title>
-<polygon fill="#c1ffc1" stroke="transparent" points="467.5,-1617 108.5,-1617 108.5,-1575 467.5,-1575 467.5,-1617"/>
-<polygon fill="none" stroke="black" points="109,-1575 109,-1617 208,-1617 208,-1575 109,-1575"/>
-<text text-anchor="start" x="114" y="-1599" font-family="Linux libertine" font-size="10.00">DeepseekV4Block</text>
-<text text-anchor="start" x="140" y="-1588" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="208,-1596 208,-1617 256,-1617 256,-1596 208,-1596"/>
-<text text-anchor="start" x="218" y="-1604" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="256,-1596 256,-1617 468,-1617 468,-1596 256,-1596"/>
-<text text-anchor="start" x="261" y="-1604" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320), (1, 1, 8, 8), (1, 8), (2, 8, 16) </text>
-<polygon fill="none" stroke="black" points="208,-1575 208,-1596 256,-1596 256,-1575 208,-1575"/>
-<text text-anchor="start" x="213" y="-1583" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="256,-1575 256,-1596 468,-1596 468,-1575 256,-1575"/>
-<text text-anchor="start" x="329.5" y="-1583" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320) </text>
-</g>
-<!-- 2&#45;&gt;17 -->
-<g id="edge9" class="edge">
-<title>2&#45;&gt;17</title>
-<path fill="none" stroke="black" d="M447.75,-2292.71C400.84,-2286.75 341.37,-2272.9 298,-2241 247.71,-2204.02 276,-2157 225,-2121 160.84,-2075.71 104.1,-2143.77 52,-2085 -0.08,-2026.26 37,-1987.51 37,-1909 37,-1909 37,-1909 37,-1751 37,-1680.47 109.9,-1641.23 177.13,-1620.04"/>
-<polygon fill="black" stroke="black" points="178.44,-1623.3 186.99,-1617.05 176.41,-1616.6 178.44,-1623.3"/>
-</g>
-<!-- 18 -->
-<g id="node19" class="node">
-<title>18</title>
-<polygon fill="#c1ffc1" stroke="transparent" points="467.5,-1539 108.5,-1539 108.5,-1497 467.5,-1497 467.5,-1539"/>
-<polygon fill="none" stroke="black" points="109,-1497 109,-1539 208,-1539 208,-1497 109,-1497"/>
-<text text-anchor="start" x="114" y="-1521" font-family="Linux libertine" font-size="10.00">DeepseekV4Block</text>
-<text text-anchor="start" x="140" y="-1510" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="208,-1518 208,-1539 256,-1539 256,-1518 208,-1518"/>
-<text text-anchor="start" x="218" y="-1526" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="256,-1518 256,-1539 468,-1539 468,-1518 256,-1518"/>
-<text text-anchor="start" x="261" y="-1526" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320), (1, 1, 8, 8), (1, 8), (2, 8, 16) </text>
-<polygon fill="none" stroke="black" points="208,-1497 208,-1518 256,-1518 256,-1497 208,-1497"/>
-<text text-anchor="start" x="213" y="-1505" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="256,-1497 256,-1518 468,-1518 468,-1497 256,-1497"/>
-<text text-anchor="start" x="329.5" y="-1505" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320) </text>
-</g>
-<!-- 2&#45;&gt;18 -->
-<g id="edge10" class="edge">
-<title>2&#45;&gt;18</title>
-<path fill="none" stroke="black" d="M447.98,-2291C312.96,-2279.86 41.62,-2255.78 27,-2241 -3.79,-2209.88 17,-2186.78 17,-2143 17,-2143 17,-2143 17,-1751 17,-1668.78 14.22,-1631.45 74,-1575 88.51,-1561.3 105.95,-1550.85 124.53,-1542.9"/>
-<polygon fill="black" stroke="black" points="126.06,-1546.06 134.04,-1539.08 123.45,-1539.56 126.06,-1546.06"/>
-</g>
-<!-- 19 -->
-<g id="node20" class="node">
-<title>19</title>
-<polygon fill="#c1ffc1" stroke="transparent" points="529.5,-1461 170.5,-1461 170.5,-1419 529.5,-1419 529.5,-1461"/>
-<polygon fill="none" stroke="black" points="171,-1419 171,-1461 270,-1461 270,-1419 171,-1419"/>
-<text text-anchor="start" x="176" y="-1443" font-family="Linux libertine" font-size="10.00">DeepseekV4Block</text>
-<text text-anchor="start" x="202" y="-1432" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="270,-1440 270,-1461 318,-1461 318,-1440 270,-1440"/>
-<text text-anchor="start" x="280" y="-1448" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="318,-1440 318,-1461 530,-1461 530,-1440 318,-1440"/>
-<text text-anchor="start" x="323" y="-1448" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320), (1, 1, 8, 8), (1, 8), (2, 8, 16) </text>
-<polygon fill="none" stroke="black" points="270,-1419 270,-1440 318,-1440 318,-1419 270,-1419"/>
-<text text-anchor="start" x="275" y="-1427" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="318,-1419 318,-1440 530,-1440 530,-1419 318,-1419"/>
-<text text-anchor="start" x="391.5" y="-1427" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320) </text>
-</g>
-<!-- 2&#45;&gt;19 -->
-<g id="edge11" class="edge">
-<title>2&#45;&gt;19</title>
-<path fill="none" stroke="black" d="M598.08,-2287.62C659.18,-2278.55 739.07,-2262.94 763,-2241 796.77,-2210.03 795,-2188.82 795,-2143 795,-2143 795,-2143 795,-1595 795,-1555.59 811.77,-1555.3 678,-1497 634.99,-1478.25 586.25,-1465.77 539.75,-1457.45"/>
-<polygon fill="black" stroke="black" points="540.32,-1454 529.86,-1455.74 539.12,-1460.9 540.32,-1454"/>
-</g>
-<!-- 4 -->
-<g id="node5" class="node">
-<title>4</title>
-<polygon fill="aliceblue" stroke="transparent" points="449.5,-2163 274.5,-2163 274.5,-2121 449.5,-2121 449.5,-2163"/>
-<polygon fill="none" stroke="black" points="275,-2121 275,-2163 345,-2163 345,-2121 275,-2121"/>
-<text text-anchor="start" x="280" y="-2145" font-family="Linux libertine" font-size="10.00">__getitem__</text>
-<text text-anchor="start" x="291.5" y="-2134" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="345,-2142 345,-2163 393,-2163 393,-2142 345,-2142"/>
-<text text-anchor="start" x="355" y="-2150" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="393,-2142 393,-2163 450,-2163 450,-2142 393,-2142"/>
-<text text-anchor="start" x="411.5" y="-2150" font-family="Linux libertine" font-size="10.00">(8,) </text>
-<polygon fill="none" stroke="black" points="345,-2121 345,-2142 393,-2142 393,-2121 345,-2121"/>
-<text text-anchor="start" x="350" y="-2129" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="393,-2121 393,-2142 450,-2142 450,-2121 393,-2121"/>
-<text text-anchor="start" x="398" y="-2129" font-family="Linux libertine" font-size="10.00">(2, 8, 16) </text>
-</g>
-<!-- 3&#45;&gt;4 -->
-<g id="edge12" class="edge">
-<title>3&#45;&gt;4</title>
-<path fill="none" stroke="black" d="M372.25,-2198.63C370.81,-2190.82 369.13,-2181.73 367.56,-2173.18"/>
-<polygon fill="black" stroke="black" points="370.97,-2172.36 365.71,-2163.16 364.08,-2173.63 370.97,-2172.36"/>
-</g>
-<!-- 5 -->
-<g id="node6" class="node">
-<title>5</title>
-<polygon fill="aliceblue" stroke="transparent" points="213,-2085 61,-2085 61,-2043 213,-2043 213,-2085"/>
-<polygon fill="none" stroke="black" points="61,-2043 61,-2085 108,-2085 108,-2043 61,-2043"/>
-<text text-anchor="start" x="79.5" y="-2067" font-family="Linux libertine" font-size="10.00">to</text>
-<text text-anchor="start" x="66" y="-2056" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="108,-2064 108,-2085 156,-2085 156,-2064 108,-2064"/>
-<text text-anchor="start" x="118" y="-2072" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="156,-2064 156,-2085 213,-2085 213,-2064 156,-2064"/>
-<text text-anchor="start" x="161" y="-2072" font-family="Linux libertine" font-size="10.00">(2, 8, 16) </text>
-<polygon fill="none" stroke="black" points="108,-2043 108,-2064 156,-2064 156,-2043 108,-2043"/>
-<text text-anchor="start" x="113" y="-2051" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="156,-2043 156,-2064 213,-2064 213,-2043 156,-2043"/>
-<text text-anchor="start" x="161" y="-2051" font-family="Linux libertine" font-size="10.00">(2, 8, 16) </text>
-</g>
-<!-- 4&#45;&gt;5 -->
-<g id="edge13" class="edge">
-<title>4&#45;&gt;5</title>
-<path fill="none" stroke="black" d="M302.59,-2120.93C272.98,-2110.93 237.01,-2098.78 206.17,-2088.36"/>
-<polygon fill="black" stroke="black" points="206.95,-2084.93 196.35,-2085.05 204.71,-2091.56 206.95,-2084.93"/>
-</g>
-<!-- 5&#45;&gt;12 -->
-<g id="edge14" class="edge">
-<title>5&#45;&gt;12</title>
-<path fill="none" stroke="black" d="M200.11,-2042.93C231.83,-2032.85 270.43,-2020.57 303.37,-2010.09"/>
-<polygon fill="black" stroke="black" points="304.48,-2013.41 312.95,-2007.05 302.36,-2006.74 304.48,-2013.41"/>
-</g>
-<!-- 5&#45;&gt;13 -->
-<g id="edge15" class="edge">
-<title>5&#45;&gt;13</title>
-<path fill="none" stroke="black" d="M146.47,-2042.74C159.29,-2015.64 181.35,-1970.35 188,-1965 205.58,-1950.87 226.43,-1940.29 248.03,-1932.37"/>
-<polygon fill="black" stroke="black" points="249.36,-1935.61 257.65,-1929.02 247.06,-1929 249.36,-1935.61"/>
-</g>
-<!-- 5&#45;&gt;14 -->
-<g id="edge16" class="edge">
-<title>5&#45;&gt;14</title>
-<path fill="none" stroke="black" d="M138.54,-2042.87C142.61,-2005.29 157.1,-1924.85 208,-1887 227.12,-1872.78 249.39,-1862.14 272.38,-1854.18"/>
-<polygon fill="black" stroke="black" points="273.51,-1857.49 281.92,-1851.04 271.32,-1850.84 273.51,-1857.49"/>
-</g>
-<!-- 5&#45;&gt;15 -->
-<g id="edge17" class="edge">
-<title>5&#45;&gt;15</title>
-<path fill="none" stroke="black" d="M136.45,-2042.92C136.27,-2022.98 136.98,-1991.62 142,-1965 157.53,-1882.63 174.93,-1850.07 248,-1809 273.78,-1794.51 303.38,-1783.69 332.28,-1775.64"/>
-<polygon fill="black" stroke="black" points="333.3,-1778.99 342.04,-1773.01 331.48,-1772.23 333.3,-1778.99"/>
-</g>
-<!-- 5&#45;&gt;16 -->
-<g id="edge18" class="edge">
-<title>5&#45;&gt;16</title>
-<path fill="none" stroke="black" d="M132.66,-2042.68C126.78,-2013.32 117,-1957.26 117,-1909 117,-1909 117,-1909 117,-1829 117,-1749.13 194.45,-1710.34 276.38,-1691.64"/>
-<polygon fill="black" stroke="black" points="277.36,-1695.01 286.39,-1689.46 275.87,-1688.17 277.36,-1695.01"/>
-</g>
-<!-- 5&#45;&gt;17 -->
-<g id="edge19" class="edge">
-<title>5&#45;&gt;17</title>
-<path fill="none" stroke="black" d="M128.12,-2042.52C116.34,-2013.42 97,-1958.17 97,-1909 97,-1909 97,-1909 97,-1751 97,-1686.67 163.46,-1644.65 217.98,-1621"/>
-<polygon fill="black" stroke="black" points="219.44,-1624.18 227.3,-1617.08 216.73,-1617.73 219.44,-1624.18"/>
-</g>
-<!-- 5&#45;&gt;18 -->
-<g id="edge20" class="edge">
-<title>5&#45;&gt;18</title>
-<path fill="none" stroke="black" d="M120.58,-2042.82C113.01,-2032.62 104.51,-2019.72 99,-2007 81.27,-1966.03 77,-1953.64 77,-1909 77,-1909 77,-1909 77,-1673 77,-1628.36 68.51,-1607.61 99,-1575 111.72,-1561.4 127.57,-1551.04 144.65,-1543.18"/>
-<polygon fill="black" stroke="black" points="146.44,-1546.22 154.25,-1539.06 143.68,-1539.78 146.44,-1546.22"/>
-</g>
-<!-- 5&#45;&gt;19 -->
-<g id="edge21" class="edge">
-<title>5&#45;&gt;19</title>
-<path fill="none" stroke="black" d="M110.71,-2042.89C99.69,-2033.18 87.69,-2020.66 80,-2007 58.07,-1968.01 57,-1953.74 57,-1909 57,-1909 57,-1909 57,-1751 57,-1636.58 14.51,-1574.16 99,-1497 114.41,-1482.92 152.05,-1471.66 193.63,-1463.03"/>
-<polygon fill="black" stroke="black" points="194.58,-1466.41 203.69,-1461.01 193.2,-1459.55 194.58,-1466.41"/>
-</g>
-<!-- 6 -->
-<g id="node7" class="node">
-<title>6</title>
-<polygon fill="aliceblue" stroke="transparent" points="736,-2241 602,-2241 602,-2199 736,-2199 736,-2241"/>
-<polygon fill="none" stroke="black" points="602,-2199 602,-2241 649,-2241 649,-2199 602,-2199"/>
-<text text-anchor="start" x="617" y="-2223" font-family="Linux libertine" font-size="10.00">triu</text>
-<text text-anchor="start" x="607" y="-2212" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="649,-2220 649,-2241 697,-2241 697,-2220 649,-2220"/>
-<text text-anchor="start" x="659" y="-2228" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="697,-2220 697,-2241 736,-2241 736,-2220 697,-2220"/>
-<text text-anchor="start" x="702" y="-2228" font-family="Linux libertine" font-size="10.00">(8, 8) </text>
-<polygon fill="none" stroke="black" points="649,-2199 649,-2220 697,-2220 697,-2199 649,-2199"/>
-<text text-anchor="start" x="654" y="-2207" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="697,-2199 697,-2220 736,-2220 736,-2199 697,-2199"/>
-<text text-anchor="start" x="702" y="-2207" font-family="Linux libertine" font-size="10.00">(8, 8) </text>
-</g>
-<!-- 7 -->
-<g id="node8" class="node">
-<title>7</title>
-<polygon fill="aliceblue" stroke="transparent" points="750,-2163 588,-2163 588,-2121 750,-2121 750,-2163"/>
-<polygon fill="none" stroke="black" points="588,-2121 588,-2163 651,-2163 651,-2121 588,-2121"/>
-<text text-anchor="start" x="593" y="-2145" font-family="Linux libertine" font-size="10.00">unsqueeze</text>
-<text text-anchor="start" x="601" y="-2134" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="651,-2142 651,-2163 699,-2163 699,-2142 651,-2142"/>
-<text text-anchor="start" x="661" y="-2150" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="699,-2142 699,-2163 750,-2163 750,-2142 699,-2142"/>
-<text text-anchor="start" x="710" y="-2150" font-family="Linux libertine" font-size="10.00">(8, 8) </text>
-<polygon fill="none" stroke="black" points="651,-2121 651,-2142 699,-2142 699,-2121 651,-2121"/>
-<text text-anchor="start" x="656" y="-2129" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="699,-2121 699,-2142 750,-2142 750,-2121 699,-2121"/>
-<text text-anchor="start" x="704" y="-2129" font-family="Linux libertine" font-size="10.00">(1, 8, 8) </text>
-</g>
-<!-- 6&#45;&gt;7 -->
-<g id="edge22" class="edge">
-<title>6&#45;&gt;7</title>
-<path fill="none" stroke="black" d="M669,-2198.63C669,-2190.82 669,-2181.73 669,-2173.18"/>
-<polygon fill="black" stroke="black" points="672.5,-2173.16 669,-2163.16 665.5,-2173.16 672.5,-2173.16"/>
-</g>
-<!-- 8 -->
-<g id="node9" class="node">
-<title>8</title>
-<polygon fill="aliceblue" stroke="transparent" points="756,-2085 582,-2085 582,-2043 756,-2043 756,-2085"/>
-<polygon fill="none" stroke="black" points="582,-2043 582,-2085 645,-2085 645,-2043 582,-2043"/>
-<text text-anchor="start" x="587" y="-2067" font-family="Linux libertine" font-size="10.00">unsqueeze</text>
-<text text-anchor="start" x="595" y="-2056" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="645,-2064 645,-2085 693,-2085 693,-2064 645,-2064"/>
-<text text-anchor="start" x="655" y="-2072" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="693,-2064 693,-2085 756,-2085 756,-2064 693,-2064"/>
-<text text-anchor="start" x="704" y="-2072" font-family="Linux libertine" font-size="10.00">(1, 8, 8) </text>
-<polygon fill="none" stroke="black" points="645,-2043 645,-2064 693,-2064 693,-2043 645,-2043"/>
-<text text-anchor="start" x="650" y="-2051" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="693,-2043 693,-2064 756,-2064 756,-2043 693,-2043"/>
-<text text-anchor="start" x="698" y="-2051" font-family="Linux libertine" font-size="10.00">(1, 1, 8, 8) </text>
-</g>
-<!-- 7&#45;&gt;8 -->
-<g id="edge23" class="edge">
-<title>7&#45;&gt;8</title>
-<path fill="none" stroke="black" d="M669,-2120.63C669,-2112.82 669,-2103.73 669,-2095.18"/>
-<polygon fill="black" stroke="black" points="672.5,-2095.16 669,-2085.16 665.5,-2095.16 672.5,-2095.16"/>
-</g>
-<!-- 8&#45;&gt;12 -->
-<g id="edge24" class="edge">
-<title>8&#45;&gt;12</title>
-<path fill="none" stroke="black" d="M591.63,-2042.93C552.16,-2032.69 504,-2020.2 463.22,-2009.62"/>
-<polygon fill="black" stroke="black" points="463.85,-2006.17 453.29,-2007.05 462.09,-2012.95 463.85,-2006.17"/>
-</g>
-<!-- 8&#45;&gt;13 -->
-<g id="edge25" class="edge">
-<title>8&#45;&gt;13</title>
-<path fill="none" stroke="black" d="M655.69,-2042.75C640.09,-2020.56 612.23,-1985.41 580,-1965 557.74,-1950.9 531.71,-1940.18 506.36,-1932.08"/>
-<polygon fill="black" stroke="black" points="507.28,-1928.7 496.69,-1929.1 505.22,-1935.39 507.28,-1928.7"/>
-</g>
-<!-- 8&#45;&gt;14 -->
-<g id="edge26" class="edge">
-<title>8&#45;&gt;14</title>
-<path fill="none" stroke="black" d="M666.63,-2042.82C661.33,-2006.57 645.18,-1930.21 600,-1887 585.43,-1873.06 567.24,-1862.58 548.33,-1854.71"/>
-<polygon fill="black" stroke="black" points="549.59,-1851.44 539.01,-1851.05 547.04,-1857.96 549.59,-1851.44"/>
-</g>
-<!-- 8&#45;&gt;15 -->
-<g id="edge27" class="edge">
-<title>8&#45;&gt;15</title>
-<path fill="none" stroke="black" d="M673.33,-2042.77C682.12,-1995.8 696.73,-1878.14 640,-1809 628.98,-1795.57 614.71,-1785.32 599.09,-1777.51"/>
-<polygon fill="black" stroke="black" points="600.3,-1774.21 589.75,-1773.18 597.36,-1780.56 600.3,-1774.21"/>
-</g>
-<!-- 8&#45;&gt;16 -->
-<g id="edge28" class="edge">
-<title>8&#45;&gt;16</title>
-<path fill="none" stroke="black" d="M675.65,-2042.99C678.93,-2032.4 682.67,-2019.11 685,-2007 693.27,-1964.01 695,-1952.78 695,-1909 695,-1909 695,-1909 695,-1829 695,-1781.96 689.88,-1762.57 655,-1731 639.56,-1717.02 620.78,-1706.53 601.12,-1698.65"/>
-<polygon fill="black" stroke="black" points="602.31,-1695.35 591.72,-1695.09 599.84,-1701.9 602.31,-1695.35"/>
-</g>
-<!-- 8&#45;&gt;17 -->
-<g id="edge29" class="edge">
-<title>8&#45;&gt;17</title>
-<path fill="none" stroke="black" d="M679.21,-2042.66C692.76,-2013.72 715,-1958.67 715,-1909 715,-1909 715,-1909 715,-1751 715,-1699.93 697.54,-1681.26 655,-1653 625.07,-1633.11 551.59,-1619.93 478.17,-1611.38"/>
-<polygon fill="black" stroke="black" points="478.14,-1607.85 467.81,-1610.2 477.35,-1614.81 478.14,-1607.85"/>
-</g>
-<!-- 8&#45;&gt;18 -->
-<g id="edge30" class="edge">
-<title>8&#45;&gt;18</title>
-<path fill="none" stroke="black" d="M684.42,-2042.85C691.74,-2032.55 700.15,-2019.57 706,-2007 725.17,-1965.82 735,-1954.42 735,-1909 735,-1909 735,-1909 735,-1673 735,-1608.1 564.45,-1564.62 434.04,-1540.86"/>
-<polygon fill="black" stroke="black" points="434.4,-1537.37 423.94,-1539.04 433.16,-1544.26 434.4,-1537.37"/>
-</g>
-<!-- 8&#45;&gt;19 -->
-<g id="edge31" class="edge">
-<title>8&#45;&gt;19</title>
-<path fill="none" stroke="black" d="M691.91,-2042.9C701.89,-2033.01 712.9,-2020.35 720,-2007 755.73,-1939.82 775,-1772.67 775,-1675 775,-1675 775,-1675 775,-1595 775,-1532.01 607.89,-1487.46 483.24,-1463"/>
-<polygon fill="black" stroke="black" points="483.7,-1459.52 473.21,-1461.05 482.36,-1466.39 483.7,-1459.52"/>
-</g>
-<!-- 10 -->
-<g id="node11" class="node">
-<title>10</title>
-<polygon fill="aliceblue" stroke="transparent" points="216,-2163 46,-2163 46,-2121 216,-2121 216,-2163"/>
-<polygon fill="none" stroke="black" points="46,-2121 46,-2163 93,-2163 93,-2121 46,-2121"/>
-<text text-anchor="start" x="51" y="-2145" font-family="Linux libertine" font-size="10.00">expand</text>
-<text text-anchor="start" x="51" y="-2134" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="93,-2142 93,-2163 141,-2163 141,-2142 93,-2142"/>
-<text text-anchor="start" x="103" y="-2150" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="141,-2142 141,-2163 216,-2163 216,-2142 141,-2142"/>
-<text text-anchor="start" x="146" y="-2150" font-family="Linux libertine" font-size="10.00">(1, 8, 1, 320) </text>
-<polygon fill="none" stroke="black" points="93,-2121 93,-2142 141,-2142 141,-2121 93,-2121"/>
-<text text-anchor="start" x="98" y="-2129" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="141,-2121 141,-2142 216,-2142 216,-2121 141,-2121"/>
-<text text-anchor="start" x="146" y="-2129" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320) </text>
-</g>
-<!-- 9&#45;&gt;10 -->
-<g id="edge32" class="edge">
-<title>9&#45;&gt;10</title>
-<path fill="none" stroke="black" d="M129.54,-2198.63C129.74,-2190.82 129.98,-2181.73 130.21,-2173.18"/>
-<polygon fill="black" stroke="black" points="133.71,-2173.25 130.47,-2163.16 126.71,-2173.06 133.71,-2173.25"/>
-</g>
-<!-- 11 -->
-<g id="node12" class="node">
-<title>11</title>
-<polygon fill="aliceblue" stroke="transparent" points="437.5,-2085 250.5,-2085 250.5,-2043 437.5,-2043 437.5,-2085"/>
-<polygon fill="none" stroke="black" points="251,-2043 251,-2085 315,-2085 315,-2043 251,-2043"/>
-<text text-anchor="start" x="256" y="-2067" font-family="Linux libertine" font-size="10.00">contiguous</text>
-<text text-anchor="start" x="264.5" y="-2056" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="315,-2064 315,-2085 363,-2085 363,-2064 315,-2064"/>
-<text text-anchor="start" x="325" y="-2072" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="363,-2064 363,-2085 438,-2085 438,-2064 363,-2064"/>
-<text text-anchor="start" x="368" y="-2072" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320) </text>
-<polygon fill="none" stroke="black" points="315,-2043 315,-2064 363,-2064 363,-2043 315,-2043"/>
-<text text-anchor="start" x="320" y="-2051" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="363,-2043 363,-2064 438,-2064 438,-2043 363,-2043"/>
-<text text-anchor="start" x="368" y="-2051" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320) </text>
-</g>
-<!-- 10&#45;&gt;11 -->
-<g id="edge33" class="edge">
-<title>10&#45;&gt;11</title>
-<path fill="none" stroke="black" d="M187.24,-2120.93C215.15,-2110.98 249.03,-2098.89 278.14,-2088.5"/>
-<polygon fill="black" stroke="black" points="279.57,-2091.71 287.81,-2085.05 277.22,-2085.11 279.57,-2091.71"/>
-</g>
-<!-- 11&#45;&gt;12 -->
-<g id="edge34" class="edge">
-<title>11&#45;&gt;12</title>
-<path fill="none" stroke="black" d="M352.58,-2042.63C355.94,-2034.65 359.86,-2025.33 363.53,-2016.62"/>
-<polygon fill="black" stroke="black" points="366.86,-2017.73 367.51,-2007.16 360.41,-2015.02 366.86,-2017.73"/>
-</g>
-<!-- 12&#45;&gt;13 -->
-<g id="edge35" class="edge">
-<title>12&#45;&gt;13</title>
-<path fill="none" stroke="black" d="M381.36,-1964.63C383.44,-1956.73 385.86,-1947.53 388.13,-1938.9"/>
-<polygon fill="black" stroke="black" points="391.53,-1939.72 390.69,-1929.16 384.77,-1937.94 391.53,-1939.72"/>
-</g>
-<!-- 13&#45;&gt;14 -->
-<g id="edge36" class="edge">
-<title>13&#45;&gt;14</title>
-<path fill="none" stroke="black" d="M406.72,-1886.63C411.01,-1878.48 416.04,-1868.92 420.71,-1860.06"/>
-<polygon fill="black" stroke="black" points="423.83,-1861.64 425.39,-1851.16 417.64,-1858.38 423.83,-1861.64"/>
-</g>
-<!-- 14&#45;&gt;15 -->
-<g id="edge37" class="edge">
-<title>14&#45;&gt;15</title>
-<path fill="none" stroke="black" d="M444.04,-1808.63C447.19,-1800.65 450.87,-1791.33 454.31,-1782.62"/>
-<polygon fill="black" stroke="black" points="457.63,-1783.75 458.04,-1773.16 451.12,-1781.18 457.63,-1783.75"/>
-</g>
-<!-- 15&#45;&gt;16 -->
-<g id="edge38" class="edge">
-<title>15&#45;&gt;16</title>
-<path fill="none" stroke="black" d="M466,-1730.63C466,-1722.82 466,-1713.73 466,-1705.18"/>
-<polygon fill="black" stroke="black" points="469.5,-1705.16 466,-1695.16 462.5,-1705.16 469.5,-1705.16"/>
-</g>
-<!-- 16&#45;&gt;17 -->
-<g id="edge39" class="edge">
-<title>16&#45;&gt;17</title>
-<path fill="none" stroke="black" d="M418.77,-1652.83C395.94,-1643.09 368.38,-1631.32 344.46,-1621.11"/>
-<polygon fill="black" stroke="black" points="345.72,-1617.84 335.15,-1617.13 342.97,-1624.27 345.72,-1617.84"/>
-</g>
-<!-- 17&#45;&gt;18 -->
-<g id="edge40" class="edge">
-<title>17&#45;&gt;18</title>
-<path fill="none" stroke="black" d="M288,-1574.63C288,-1566.82 288,-1557.73 288,-1549.18"/>
-<polygon fill="black" stroke="black" points="291.5,-1549.16 288,-1539.16 284.5,-1549.16 291.5,-1549.16"/>
-</g>
-<!-- 18&#45;&gt;19 -->
-<g id="edge41" class="edge">
-<title>18&#45;&gt;19</title>
-<path fill="none" stroke="black" d="M304.61,-1496.63C311.55,-1488.13 319.72,-1478.12 327.2,-1468.94"/>
-<polygon fill="black" stroke="black" points="329.94,-1471.12 333.55,-1461.16 324.52,-1466.7 329.94,-1471.12"/>
-</g>
-<!-- 20 -->
-<g id="node21" class="node">
-<title>20</title>
-<polygon fill="aliceblue" stroke="transparent" points="353,-1383 183,-1383 183,-1341 353,-1341 353,-1383"/>
-<polygon fill="none" stroke="black" points="183,-1341 183,-1383 230,-1383 230,-1341 183,-1341"/>
-<text text-anchor="start" x="190.5" y="-1365" font-family="Linux libertine" font-size="10.00">flatten</text>
-<text text-anchor="start" x="188" y="-1354" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="230,-1362 230,-1383 278,-1383 278,-1362 230,-1362"/>
-<text text-anchor="start" x="240" y="-1370" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="278,-1362 278,-1383 353,-1383 353,-1362 278,-1362"/>
-<text text-anchor="start" x="283" y="-1370" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320) </text>
-<polygon fill="none" stroke="black" points="230,-1341 230,-1362 278,-1362 278,-1341 230,-1341"/>
-<text text-anchor="start" x="235" y="-1349" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="278,-1341 278,-1362 353,-1362 353,-1341 278,-1341"/>
-<text text-anchor="start" x="286" y="-1349" font-family="Linux libertine" font-size="10.00">(1, 8, 1280) </text>
-</g>
-<!-- 19&#45;&gt;20 -->
-<g id="edge42" class="edge">
-<title>19&#45;&gt;20</title>
-<path fill="none" stroke="black" d="M328.03,-1418.63C318.57,-1409.87 307.39,-1399.51 297.25,-1390.11"/>
-<polygon fill="black" stroke="black" points="299.46,-1387.39 289.75,-1383.16 294.71,-1392.52 299.46,-1387.39"/>
-</g>
-<!-- 33 -->
-<g id="node34" class="node">
-<title>33</title>
-<polygon fill="aliceblue" stroke="transparent" points="518,-1305 348,-1305 348,-1263 518,-1263 518,-1305"/>
-<polygon fill="none" stroke="black" points="348,-1263 348,-1305 395,-1305 395,-1263 348,-1263"/>
-<text text-anchor="start" x="360.5" y="-1287" font-family="Linux libertine" font-size="10.00">float</text>
-<text text-anchor="start" x="353" y="-1276" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="395,-1284 395,-1305 443,-1305 443,-1284 395,-1284"/>
-<text text-anchor="start" x="405" y="-1292" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="443,-1284 443,-1305 518,-1305 518,-1284 443,-1284"/>
-<text text-anchor="start" x="448" y="-1292" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320) </text>
-<polygon fill="none" stroke="black" points="395,-1263 395,-1284 443,-1284 443,-1263 395,-1263"/>
-<text text-anchor="start" x="400" y="-1271" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="443,-1263 443,-1284 518,-1284 518,-1263 443,-1263"/>
-<text text-anchor="start" x="448" y="-1271" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320) </text>
-</g>
-<!-- 19&#45;&gt;33 -->
-<g id="edge43" class="edge">
-<title>19&#45;&gt;33</title>
-<path fill="none" stroke="black" d="M360.85,-1418.87C375.27,-1392.12 400.83,-1344.69 417.34,-1314.06"/>
-<polygon fill="black" stroke="black" points="420.48,-1315.6 422.15,-1305.14 414.32,-1312.28 420.48,-1315.6"/>
-</g>
-<!-- 21 -->
-<g id="node22" class="node">
-<title>21</title>
-<polygon fill="aliceblue" stroke="transparent" points="330,-1305 166,-1305 166,-1263 330,-1263 330,-1305"/>
-<polygon fill="none" stroke="black" points="166,-1263 166,-1305 213,-1305 213,-1263 166,-1263"/>
-<text text-anchor="start" x="178.5" y="-1287" font-family="Linux libertine" font-size="10.00">float</text>
-<text text-anchor="start" x="171" y="-1276" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="213,-1284 213,-1305 261,-1305 261,-1284 213,-1284"/>
-<text text-anchor="start" x="223" y="-1292" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="261,-1284 261,-1305 330,-1305 330,-1284 261,-1284"/>
-<text text-anchor="start" x="266" y="-1292" font-family="Linux libertine" font-size="10.00">(1, 8, 1280) </text>
-<polygon fill="none" stroke="black" points="213,-1263 213,-1284 261,-1284 261,-1263 213,-1263"/>
-<text text-anchor="start" x="218" y="-1271" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="261,-1263 261,-1284 330,-1284 330,-1263 261,-1263"/>
-<text text-anchor="start" x="266" y="-1271" font-family="Linux libertine" font-size="10.00">(1, 8, 1280) </text>
-</g>
-<!-- 20&#45;&gt;21 -->
-<g id="edge44" class="edge">
-<title>20&#45;&gt;21</title>
-<path fill="none" stroke="black" d="M262.64,-1340.63C260.56,-1332.73 258.14,-1323.53 255.87,-1314.9"/>
-<polygon fill="black" stroke="black" points="259.23,-1313.94 253.31,-1305.16 252.47,-1315.72 259.23,-1313.94"/>
-</g>
-<!-- 22 -->
-<g id="node23" class="node">
-<title>22</title>
-<polygon fill="aliceblue" stroke="transparent" points="247,-1227 83,-1227 83,-1185 247,-1185 247,-1227"/>
-<polygon fill="none" stroke="black" points="83,-1185 83,-1227 130,-1227 130,-1185 83,-1185"/>
-<text text-anchor="start" x="96" y="-1209" font-family="Linux libertine" font-size="10.00">pow</text>
-<text text-anchor="start" x="88" y="-1198" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="130,-1206 130,-1227 178,-1227 178,-1206 130,-1206"/>
-<text text-anchor="start" x="140" y="-1214" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="178,-1206 178,-1227 247,-1227 247,-1206 178,-1206"/>
-<text text-anchor="start" x="183" y="-1214" font-family="Linux libertine" font-size="10.00">(1, 8, 1280) </text>
-<polygon fill="none" stroke="black" points="130,-1185 130,-1206 178,-1206 178,-1185 130,-1185"/>
-<text text-anchor="start" x="135" y="-1193" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="178,-1185 178,-1206 247,-1206 247,-1185 178,-1185"/>
-<text text-anchor="start" x="183" y="-1193" font-family="Linux libertine" font-size="10.00">(1, 8, 1280) </text>
-</g>
-<!-- 21&#45;&gt;22 -->
-<g id="edge45" class="edge">
-<title>21&#45;&gt;22</title>
-<path fill="none" stroke="black" d="M225.76,-1262.63C216.19,-1253.87 204.87,-1243.51 194.61,-1234.11"/>
-<polygon fill="black" stroke="black" points="196.75,-1231.33 187.02,-1227.16 192.03,-1236.49 196.75,-1231.33"/>
-</g>
-<!-- 26 -->
-<g id="node27" class="node">
-<title>26</title>
-<polygon fill="aliceblue" stroke="transparent" points="408,-1149 244,-1149 244,-1107 408,-1107 408,-1149"/>
-<polygon fill="none" stroke="black" points="244,-1107 244,-1149 291,-1149 291,-1107 244,-1107"/>
-<text text-anchor="start" x="253.5" y="-1131" font-family="Linux libertine" font-size="10.00">linear</text>
-<text text-anchor="start" x="249" y="-1120" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="291,-1128 291,-1149 339,-1149 339,-1128 291,-1128"/>
-<text text-anchor="start" x="301" y="-1136" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="339,-1128 339,-1149 408,-1149 408,-1128 339,-1128"/>
-<text text-anchor="start" x="344" y="-1136" font-family="Linux libertine" font-size="10.00">(1, 8, 1280) </text>
-<polygon fill="none" stroke="black" points="291,-1107 291,-1128 339,-1128 339,-1107 291,-1107"/>
-<text text-anchor="start" x="296" y="-1115" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="339,-1107 339,-1128 408,-1128 408,-1107 339,-1107"/>
-<text text-anchor="start" x="353" y="-1115" font-family="Linux libertine" font-size="10.00">(1, 8, 4) </text>
-</g>
-<!-- 21&#45;&gt;26 -->
-<g id="edge46" class="edge">
-<title>21&#45;&gt;26</title>
-<path fill="none" stroke="black" d="M258.2,-1262.87C271.74,-1236.12 295.77,-1188.69 311.28,-1158.06"/>
-<polygon fill="black" stroke="black" points="314.4,-1159.64 315.8,-1149.14 308.16,-1156.48 314.4,-1159.64"/>
-</g>
-<!-- 23 -->
-<g id="node24" class="node">
-<title>23</title>
-<polygon fill="aliceblue" stroke="transparent" points="226,-1149 62,-1149 62,-1107 226,-1107 226,-1149"/>
-<polygon fill="none" stroke="black" points="62,-1107 62,-1149 109,-1149 109,-1107 62,-1107"/>
-<text text-anchor="start" x="71.5" y="-1131" font-family="Linux libertine" font-size="10.00">mean</text>
-<text text-anchor="start" x="67" y="-1120" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="109,-1128 109,-1149 157,-1149 157,-1128 109,-1128"/>
-<text text-anchor="start" x="119" y="-1136" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="157,-1128 157,-1149 226,-1149 226,-1128 157,-1128"/>
-<text text-anchor="start" x="162" y="-1136" font-family="Linux libertine" font-size="10.00">(1, 8, 1280) </text>
-<polygon fill="none" stroke="black" points="109,-1107 109,-1128 157,-1128 157,-1107 109,-1107"/>
-<text text-anchor="start" x="114" y="-1115" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="157,-1107 157,-1128 226,-1128 226,-1107 157,-1107"/>
-<text text-anchor="start" x="171" y="-1115" font-family="Linux libertine" font-size="10.00">(1, 8, 1) </text>
-</g>
-<!-- 22&#45;&gt;23 -->
-<g id="edge47" class="edge">
-<title>22&#45;&gt;23</title>
-<path fill="none" stroke="black" d="M159.37,-1184.63C157.19,-1176.73 154.65,-1167.53 152.26,-1158.9"/>
-<polygon fill="black" stroke="black" points="155.61,-1157.87 149.57,-1149.16 148.86,-1159.73 155.61,-1157.87"/>
-</g>
-<!-- 24 -->
-<g id="node25" class="node">
-<title>24</title>
-<polygon fill="aliceblue" stroke="transparent" points="239,-1071 93,-1071 93,-1029 239,-1029 239,-1071"/>
-<polygon fill="none" stroke="black" points="93,-1029 93,-1071 140,-1071 140,-1029 93,-1029"/>
-<text text-anchor="start" x="107" y="-1053" font-family="Linux libertine" font-size="10.00">add</text>
-<text text-anchor="start" x="98" y="-1042" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="140,-1050 140,-1071 188,-1071 188,-1050 140,-1050"/>
-<text text-anchor="start" x="150" y="-1058" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="188,-1050 188,-1071 239,-1071 239,-1050 188,-1050"/>
-<text text-anchor="start" x="193" y="-1058" font-family="Linux libertine" font-size="10.00">(1, 8, 1) </text>
-<polygon fill="none" stroke="black" points="140,-1029 140,-1050 188,-1050 188,-1029 140,-1029"/>
-<text text-anchor="start" x="145" y="-1037" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="188,-1029 188,-1050 239,-1050 239,-1029 188,-1029"/>
-<text text-anchor="start" x="193" y="-1037" font-family="Linux libertine" font-size="10.00">(1, 8, 1) </text>
-</g>
-<!-- 23&#45;&gt;24 -->
-<g id="edge48" class="edge">
-<title>23&#45;&gt;24</title>
-<path fill="none" stroke="black" d="M149.9,-1106.63C152.18,-1098.73 154.85,-1089.53 157.34,-1080.9"/>
-<polygon fill="black" stroke="black" points="160.75,-1081.74 160.16,-1071.16 154.02,-1079.79 160.75,-1081.74"/>
-</g>
-<!-- 25 -->
-<g id="node26" class="node">
-<title>25</title>
-<polygon fill="aliceblue" stroke="transparent" points="280,-993 134,-993 134,-951 280,-951 280,-993"/>
-<polygon fill="none" stroke="black" points="134,-951 134,-993 181,-993 181,-951 134,-951"/>
-<text text-anchor="start" x="146" y="-975" font-family="Linux libertine" font-size="10.00">rsqrt</text>
-<text text-anchor="start" x="139" y="-964" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="181,-972 181,-993 229,-993 229,-972 181,-972"/>
-<text text-anchor="start" x="191" y="-980" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="229,-972 229,-993 280,-993 280,-972 229,-972"/>
-<text text-anchor="start" x="234" y="-980" font-family="Linux libertine" font-size="10.00">(1, 8, 1) </text>
-<polygon fill="none" stroke="black" points="181,-951 181,-972 229,-972 229,-951 181,-951"/>
-<text text-anchor="start" x="186" y="-959" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="229,-951 229,-972 280,-972 280,-951 229,-951"/>
-<text text-anchor="start" x="234" y="-959" font-family="Linux libertine" font-size="10.00">(1, 8, 1) </text>
-</g>
-<!-- 24&#45;&gt;25 -->
-<g id="edge49" class="edge">
-<title>24&#45;&gt;25</title>
-<path fill="none" stroke="black" d="M176.99,-1028.63C181.39,-1020.48 186.54,-1010.92 191.32,-1002.06"/>
-<polygon fill="black" stroke="black" points="194.46,-1003.62 196.12,-993.16 188.3,-1000.3 194.46,-1003.62"/>
-</g>
-<!-- 27 -->
-<g id="node28" class="node">
-<title>27</title>
-<polygon fill="aliceblue" stroke="transparent" points="414,-915 224,-915 224,-873 414,-873 414,-915"/>
-<polygon fill="none" stroke="black" points="224,-873 224,-915 271,-915 271,-873 224,-873"/>
-<text text-anchor="start" x="238" y="-897" font-family="Linux libertine" font-size="10.00">mul</text>
-<text text-anchor="start" x="229" y="-886" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="271,-894 271,-915 319,-915 319,-894 271,-894"/>
-<text text-anchor="start" x="281" y="-902" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="319,-894 319,-915 414,-915 414,-894 319,-894"/>
-<text text-anchor="start" x="324" y="-902" font-family="Linux libertine" font-size="10.00">(1, 8, 4), (1, 8, 1) </text>
-<polygon fill="none" stroke="black" points="271,-873 271,-894 319,-894 319,-873 271,-873"/>
-<text text-anchor="start" x="276" y="-881" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="319,-873 319,-894 414,-894 414,-873 319,-873"/>
-<text text-anchor="start" x="346" y="-881" font-family="Linux libertine" font-size="10.00">(1, 8, 4) </text>
-</g>
-<!-- 25&#45;&gt;27 -->
-<g id="edge50" class="edge">
-<title>25&#45;&gt;27</title>
-<path fill="none" stroke="black" d="M236.72,-950.83C250.14,-941.73 266.16,-930.86 280.48,-921.14"/>
-<polygon fill="black" stroke="black" points="282.83,-923.77 289.14,-915.26 278.9,-917.98 282.83,-923.77"/>
-</g>
-<!-- 26&#45;&gt;27 -->
-<g id="edge51" class="edge">
-<title>26&#45;&gt;27</title>
-<path fill="none" stroke="black" d="M325.39,-1106.82C324.16,-1066.03 321.37,-973.57 319.92,-925.42"/>
-<polygon fill="black" stroke="black" points="323.41,-925.19 319.61,-915.3 316.42,-925.4 323.41,-925.19"/>
-</g>
-<!-- 28 -->
-<g id="node29" class="node">
-<title>28</title>
-<polygon fill="aliceblue" stroke="transparent" points="392,-837 246,-837 246,-795 392,-795 392,-837"/>
-<polygon fill="none" stroke="black" points="246,-795 246,-837 293,-837 293,-795 246,-795"/>
-<text text-anchor="start" x="260" y="-819" font-family="Linux libertine" font-size="10.00">mul</text>
-<text text-anchor="start" x="251" y="-808" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="293,-816 293,-837 341,-837 341,-816 293,-816"/>
-<text text-anchor="start" x="303" y="-824" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="341,-816 341,-837 392,-837 392,-816 341,-816"/>
-<text text-anchor="start" x="346" y="-824" font-family="Linux libertine" font-size="10.00">(1, 8, 4) </text>
-<polygon fill="none" stroke="black" points="293,-795 293,-816 341,-816 341,-795 293,-795"/>
-<text text-anchor="start" x="298" y="-803" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="341,-795 341,-816 392,-816 392,-795 341,-795"/>
-<text text-anchor="start" x="346" y="-803" font-family="Linux libertine" font-size="10.00">(1, 8, 4) </text>
-</g>
-<!-- 27&#45;&gt;28 -->
-<g id="edge52" class="edge">
-<title>27&#45;&gt;28</title>
-<path fill="none" stroke="black" d="M319,-872.63C319,-864.82 319,-855.73 319,-847.18"/>
-<polygon fill="black" stroke="black" points="322.5,-847.16 319,-837.16 315.5,-847.16 322.5,-847.16"/>
-</g>
-<!-- 29 -->
-<g id="node30" class="node">
-<title>29</title>
-<polygon fill="aliceblue" stroke="transparent" points="394,-759 248,-759 248,-717 394,-717 394,-759"/>
-<polygon fill="none" stroke="black" points="248,-717 248,-759 295,-759 295,-717 248,-717"/>
-<text text-anchor="start" x="262" y="-741" font-family="Linux libertine" font-size="10.00">add</text>
-<text text-anchor="start" x="253" y="-730" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="295,-738 295,-759 343,-759 343,-738 295,-738"/>
-<text text-anchor="start" x="305" y="-746" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="343,-738 343,-759 394,-759 394,-738 343,-738"/>
-<text text-anchor="start" x="348" y="-746" font-family="Linux libertine" font-size="10.00">(1, 8, 4) </text>
-<polygon fill="none" stroke="black" points="295,-717 295,-738 343,-738 343,-717 295,-717"/>
-<text text-anchor="start" x="300" y="-725" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="343,-717 343,-738 394,-738 394,-717 343,-717"/>
-<text text-anchor="start" x="348" y="-725" font-family="Linux libertine" font-size="10.00">(1, 8, 4) </text>
-</g>
-<!-- 28&#45;&gt;29 -->
-<g id="edge53" class="edge">
-<title>28&#45;&gt;29</title>
-<path fill="none" stroke="black" d="M319.54,-794.63C319.74,-786.82 319.98,-777.73 320.21,-769.18"/>
-<polygon fill="black" stroke="black" points="323.71,-769.25 320.47,-759.16 316.71,-769.06 323.71,-769.25"/>
-</g>
-<!-- 30 -->
-<g id="node31" class="node">
-<title>30</title>
-<polygon fill="aliceblue" stroke="transparent" points="399.5,-681 250.5,-681 250.5,-639 399.5,-639 399.5,-681"/>
-<polygon fill="none" stroke="black" points="251,-639 251,-681 301,-681 301,-639 251,-639"/>
-<text text-anchor="start" x="256" y="-663" font-family="Linux libertine" font-size="10.00">sigmoid</text>
-<text text-anchor="start" x="257.5" y="-652" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="301,-660 301,-681 349,-681 349,-660 301,-660"/>
-<text text-anchor="start" x="311" y="-668" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="349,-660 349,-681 400,-681 400,-660 349,-660"/>
-<text text-anchor="start" x="354" y="-668" font-family="Linux libertine" font-size="10.00">(1, 8, 4) </text>
-<polygon fill="none" stroke="black" points="301,-639 301,-660 349,-660 349,-639 301,-639"/>
-<text text-anchor="start" x="306" y="-647" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="349,-639 349,-660 400,-660 400,-639 349,-639"/>
-<text text-anchor="start" x="354" y="-647" font-family="Linux libertine" font-size="10.00">(1, 8, 4) </text>
-</g>
-<!-- 29&#45;&gt;30 -->
-<g id="edge54" class="edge">
-<title>29&#45;&gt;30</title>
-<path fill="none" stroke="black" d="M322.07,-716.63C322.48,-708.82 322.96,-699.73 323.41,-691.18"/>
-<polygon fill="black" stroke="black" points="326.91,-691.33 323.94,-681.16 319.92,-690.96 326.91,-691.33"/>
-</g>
-<!-- 31 -->
-<g id="node32" class="node">
-<title>31</title>
-<polygon fill="aliceblue" stroke="transparent" points="398,-603 252,-603 252,-561 398,-561 398,-603"/>
-<polygon fill="none" stroke="black" points="252,-561 252,-603 299,-603 299,-561 252,-561"/>
-<text text-anchor="start" x="266" y="-585" font-family="Linux libertine" font-size="10.00">add</text>
-<text text-anchor="start" x="257" y="-574" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="299,-582 299,-603 347,-603 347,-582 299,-582"/>
-<text text-anchor="start" x="309" y="-590" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="347,-582 347,-603 398,-603 398,-582 347,-582"/>
-<text text-anchor="start" x="352" y="-590" font-family="Linux libertine" font-size="10.00">(1, 8, 4) </text>
-<polygon fill="none" stroke="black" points="299,-561 299,-582 347,-582 347,-561 299,-561"/>
-<text text-anchor="start" x="304" y="-569" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="347,-561 347,-582 398,-582 398,-561 347,-561"/>
-<text text-anchor="start" x="352" y="-569" font-family="Linux libertine" font-size="10.00">(1, 8, 4) </text>
-</g>
-<!-- 30&#45;&gt;31 -->
-<g id="edge55" class="edge">
-<title>30&#45;&gt;31</title>
-<path fill="none" stroke="black" d="M325,-638.63C325,-630.82 325,-621.73 325,-613.18"/>
-<polygon fill="black" stroke="black" points="328.5,-613.16 325,-603.16 321.5,-613.16 328.5,-613.16"/>
-</g>
-<!-- 32 -->
-<g id="node33" class="node">
-<title>32</title>
-<polygon fill="aliceblue" stroke="transparent" points="413,-525 239,-525 239,-483 413,-483 413,-525"/>
-<polygon fill="none" stroke="black" points="239,-483 239,-525 302,-525 302,-483 239,-483"/>
-<text text-anchor="start" x="244" y="-507" font-family="Linux libertine" font-size="10.00">unsqueeze</text>
-<text text-anchor="start" x="252" y="-496" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="302,-504 302,-525 350,-525 350,-504 302,-504"/>
-<text text-anchor="start" x="312" y="-512" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="350,-504 350,-525 413,-525 413,-504 350,-504"/>
-<text text-anchor="start" x="361" y="-512" font-family="Linux libertine" font-size="10.00">(1, 8, 4) </text>
-<polygon fill="none" stroke="black" points="302,-483 302,-504 350,-504 350,-483 302,-483"/>
-<text text-anchor="start" x="307" y="-491" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="350,-483 350,-504 413,-504 413,-483 350,-483"/>
-<text text-anchor="start" x="355" y="-491" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 1) </text>
-</g>
-<!-- 31&#45;&gt;32 -->
-<g id="edge56" class="edge">
-<title>31&#45;&gt;32</title>
-<path fill="none" stroke="black" d="M325.27,-560.63C325.37,-552.82 325.49,-543.73 325.6,-535.18"/>
-<polygon fill="black" stroke="black" points="329.1,-535.2 325.73,-525.16 322.1,-535.11 329.1,-535.2"/>
-</g>
-<!-- 34 -->
-<g id="node35" class="node">
-<title>34</title>
-<polygon fill="aliceblue" stroke="transparent" points="496,-447 270,-447 270,-405 496,-405 496,-447"/>
-<polygon fill="none" stroke="black" points="270,-405 270,-447 317,-447 317,-405 270,-405"/>
-<text text-anchor="start" x="284" y="-429" font-family="Linux libertine" font-size="10.00">mul</text>
-<text text-anchor="start" x="275" y="-418" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="317,-426 317,-447 365,-447 365,-426 317,-426"/>
-<text text-anchor="start" x="327" y="-434" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="365,-426 365,-447 496,-447 496,-426 365,-426"/>
-<text text-anchor="start" x="370" y="-434" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 1), (1, 8, 4, 320) </text>
-<polygon fill="none" stroke="black" points="317,-405 317,-426 365,-426 365,-405 317,-405"/>
-<text text-anchor="start" x="322" y="-413" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="365,-405 365,-426 496,-426 496,-405 365,-405"/>
-<text text-anchor="start" x="398" y="-413" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320) </text>
-</g>
-<!-- 32&#45;&gt;34 -->
-<g id="edge57" class="edge">
-<title>32&#45;&gt;34</title>
-<path fill="none" stroke="black" d="M341.27,-482.63C347.59,-474.22 355.01,-464.32 361.83,-455.22"/>
-<polygon fill="black" stroke="black" points="364.68,-457.26 367.88,-447.16 359.08,-453.06 364.68,-457.26"/>
-</g>
-<!-- 33&#45;&gt;34 -->
-<g id="edge58" class="edge">
-<title>33&#45;&gt;34</title>
-<path fill="none" stroke="black" d="M433,-1262.57C433,-1233.08 433,-1176.86 433,-1129 433,-1129 433,-1129 433,-581 433,-537.17 437.44,-524.02 422,-483 418.34,-473.27 412.6,-463.63 406.65,-455.16"/>
-<polygon fill="black" stroke="black" points="409.46,-453.07 400.69,-447.13 403.83,-457.24 409.46,-453.07"/>
-</g>
-<!-- 35 -->
-<g id="node36" class="node">
-<title>35</title>
-<polygon fill="aliceblue" stroke="transparent" points="468,-369 298,-369 298,-327 468,-327 468,-369"/>
-<polygon fill="none" stroke="black" points="298,-327 298,-369 345,-369 345,-327 298,-327"/>
-<text text-anchor="start" x="310.5" y="-351" font-family="Linux libertine" font-size="10.00">sum</text>
-<text text-anchor="start" x="303" y="-340" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="345,-348 345,-369 393,-369 393,-348 345,-348"/>
-<text text-anchor="start" x="355" y="-356" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="393,-348 393,-369 468,-369 468,-348 393,-348"/>
-<text text-anchor="start" x="398" y="-356" font-family="Linux libertine" font-size="10.00">(1, 8, 4, 320) </text>
-<polygon fill="none" stroke="black" points="345,-327 345,-348 393,-348 393,-327 345,-327"/>
-<text text-anchor="start" x="350" y="-335" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="393,-327 393,-348 468,-348 468,-327 393,-327"/>
-<text text-anchor="start" x="404" y="-335" font-family="Linux libertine" font-size="10.00">(1, 8, 320) </text>
-</g>
-<!-- 34&#45;&gt;35 -->
-<g id="edge59" class="edge">
-<title>34&#45;&gt;35</title>
-<path fill="none" stroke="black" d="M383,-404.63C383,-396.82 383,-387.73 383,-379.18"/>
-<polygon fill="black" stroke="black" points="386.5,-379.16 383,-369.16 379.5,-379.16 386.5,-379.16"/>
-</g>
-<!-- 36 -->
-<g id="node37" class="node">
-<title>36</title>
-<polygon fill="aliceblue" stroke="transparent" points="462,-291 304,-291 304,-249 462,-249 462,-291"/>
-<polygon fill="none" stroke="black" points="304,-249 304,-291 351,-291 351,-249 304,-249"/>
-<text text-anchor="start" x="322.5" y="-273" font-family="Linux libertine" font-size="10.00">to</text>
-<text text-anchor="start" x="309" y="-262" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="351,-270 351,-291 399,-291 399,-270 351,-270"/>
-<text text-anchor="start" x="361" y="-278" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="399,-270 399,-291 462,-291 462,-270 399,-270"/>
-<text text-anchor="start" x="404" y="-278" font-family="Linux libertine" font-size="10.00">(1, 8, 320) </text>
-<polygon fill="none" stroke="black" points="351,-249 351,-270 399,-270 399,-249 351,-249"/>
-<text text-anchor="start" x="356" y="-257" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="399,-249 399,-270 462,-270 462,-249 399,-249"/>
-<text text-anchor="start" x="404" y="-257" font-family="Linux libertine" font-size="10.00">(1, 8, 320) </text>
-</g>
-<!-- 35&#45;&gt;36 -->
-<g id="edge60" class="edge">
-<title>35&#45;&gt;36</title>
-<path fill="none" stroke="black" d="M383,-326.63C383,-318.82 383,-309.73 383,-301.18"/>
-<polygon fill="black" stroke="black" points="386.5,-301.16 383,-291.16 379.5,-301.16 386.5,-301.16"/>
-</g>
-<!-- 37 -->
-<g id="node38" class="node">
-<title>37</title>
-<polygon fill="#c1ffc1" stroke="transparent" points="499,-213 267,-213 267,-171 499,-171 499,-213"/>
-<polygon fill="none" stroke="black" points="267,-171 267,-213 388,-213 388,-171 267,-171"/>
-<text text-anchor="start" x="272" y="-195" font-family="Linux libertine" font-size="10.00">DeepseekV4RMSNorm</text>
-<text text-anchor="start" x="309" y="-184" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="388,-192 388,-213 436,-213 436,-192 388,-192"/>
-<text text-anchor="start" x="398" y="-200" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="436,-192 436,-213 499,-213 499,-192 436,-192"/>
-<text text-anchor="start" x="441" y="-200" font-family="Linux libertine" font-size="10.00">(1, 8, 320) </text>
-<polygon fill="none" stroke="black" points="388,-171 388,-192 436,-192 436,-171 388,-171"/>
-<text text-anchor="start" x="393" y="-179" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="436,-171 436,-192 499,-192 499,-171 436,-171"/>
-<text text-anchor="start" x="441" y="-179" font-family="Linux libertine" font-size="10.00">(1, 8, 320) </text>
-</g>
-<!-- 36&#45;&gt;37 -->
-<g id="edge61" class="edge">
-<title>36&#45;&gt;37</title>
-<path fill="none" stroke="black" d="M383,-248.63C383,-240.82 383,-231.73 383,-223.18"/>
-<polygon fill="black" stroke="black" points="386.5,-223.16 383,-213.16 379.5,-223.16 386.5,-223.16"/>
-</g>
-<!-- 38 -->
-<g id="node39" class="node">
-<title>38</title>
-<polygon fill="aliceblue" stroke="transparent" points="462,-126 304,-126 304,-84 462,-84 462,-126"/>
-<polygon fill="none" stroke="black" points="304,-84 304,-126 351,-126 351,-84 304,-84"/>
-<text text-anchor="start" x="313.5" y="-108" font-family="Linux libertine" font-size="10.00">linear</text>
-<text text-anchor="start" x="309" y="-97" font-family="Linux libertine" font-size="10.00">depth:2</text>
-<polygon fill="none" stroke="black" points="351,-105 351,-126 399,-126 399,-105 351,-105"/>
-<text text-anchor="start" x="361" y="-113" font-family="Linux libertine" font-size="10.00">input:</text>
-<polygon fill="none" stroke="black" points="399,-105 399,-126 462,-126 462,-105 399,-105"/>
-<text text-anchor="start" x="404" y="-113" font-family="Linux libertine" font-size="10.00">(1, 8, 320) </text>
-<polygon fill="none" stroke="black" points="351,-84 351,-105 399,-105 399,-84 351,-84"/>
-<text text-anchor="start" x="356" y="-92" font-family="Linux libertine" font-size="10.00">output: </text>
-<polygon fill="none" stroke="black" points="399,-84 399,-105 462,-105 462,-84 399,-84"/>
-<text text-anchor="start" x="404" y="-92" font-family="Linux libertine" font-size="10.00">(1, 8, 512) </text>
-</g>
-<!-- 37&#45;&gt;38 -->
-<g id="edge62" class="edge">
-<title>37&#45;&gt;38</title>
-<path fill="none" stroke="black" d="M383,-170.86C383,-160.56 383,-147.81 383,-136.35"/>
-<polygon fill="black" stroke="black" points="386.5,-136.29 383,-126.29 379.5,-136.29 386.5,-136.29"/>
-</g>
-<!-- 39 -->
-<g id="node40" class="node">
-<title>39</title>
-<polygon fill="lightyellow" stroke="transparent" points="451.5,-48 314.5,-48 314.5,-16 451.5,-16 451.5,-48"/>
-<polygon fill="none" stroke="black" points="315,-16 315,-48 392,-48 392,-16 315,-16"/>
-<text text-anchor="start" x="320" y="-35" font-family="Linux libertine" font-size="10.00">output&#45;tensor</text>
-<text text-anchor="start" x="335" y="-24" font-family="Linux libertine" font-size="10.00">depth:0</text>
-<polygon fill="none" stroke="black" points="392,-16 392,-48 452,-48 452,-16 392,-16"/>
-<text text-anchor="start" x="397" y="-29.5" font-family="Linux libertine" font-size="10.00">(1, 8, 512)</text>
-</g>
-<!-- 38&#45;&gt;39 -->
-<g id="edge63" class="edge">
-<title>38&#45;&gt;39</title>
-<path fill="none" stroke="black" d="M383,-83.84C383,-75.89 383,-66.66 383,-58.26"/>
-<polygon fill="black" stroke="black" points="386.5,-58.24 383,-48.24 379.5,-58.24 386.5,-58.24"/>
-</g>
-</g>
-</svg></div>
     <div class="legend">
-      <b>Pipeline</b><br>
-      input_ids → embed_tokens → expand to <code>hc_mult=4</code> copies<br>
-      → <code>DeepseekV4Block × 8</code> (MLA attn → MoE FFN, with HC pre/post)<br>
-      → <code>hc_head</code> (contract 4→1) → RMSNorm → lm_head → logits
+      <div class="row"><span class="sw" style="background:var(--c-token)"></span>tokens / logits</div>
+      <div class="row"><span class="sw" style="background:var(--c-embed)"></span>embedding / lm_head</div>
+      <div class="row"><span class="sw" style="background:var(--c-tensor)"></span>activation tensor</div>
+      <div class="row"><span class="sw" style="background:var(--c-hc)"></span>Hyper-Connections (HC)</div>
+      <div class="row"><span class="sw" style="background:var(--c-norm)"></span>RMSNorm</div>
+      <div class="row"><span class="sw" style="background:var(--c-attn)"></span>MLA attention</div>
+      <div class="row"><span class="sw" style="background:var(--c-moe)"></span>MoE / experts</div>
+      <div class="row"><span class="sw" style="background:var(--c-rope)"></span>RoPE</div>
     </div>
-  </section>
+    <svg id="scene"></svg>
+  </div>
 
-  <section id="pane-tree" class="pane">
-    <div class="tree-wrap">
-      <input type="text" class="search" id="search" placeholder="Filter modules (e.g. attn, moe, hc, layers.3)">
-      <div class="tree" id="tree"></div>
+  <aside id="panel">
+    <div id="panel-body">
+      <div class="empty">
+        <div>Click any block in the pipeline.</div>
+        <div class="hint">Drag to pan · scroll to zoom · click layer headers to expand</div>
+      </div>
     </div>
-    <aside class="detail" id="detail">
-      <h3>Module detail</h3>
-      <div id="detail-body" style="color:var(--muted);font-size:12.5px">
-        Click a node on the left to see its type, parameter count and tensor shape.
-      </div>
-      <div class="note">
-        <b>How to read the tree</b><br>
-        Every line is an <code>nn.Module</code> or <code>nn.Parameter</code>. The
-        number after the name is the total parameter count of that subtree.
-        Tensor shapes are shown only for leaf <code>Parameter</code>s.
-      </div>
-    </aside>
-  </section>
+  </aside>
 </main>
 
 <script>
-const ARCH = {"config":{"vocab_size":129280,"hidden_size":320,"num_hidden_layers":8,"num_attention_heads":8,"num_key_value_heads":1,"moe_intermediate_size":640,"n_routed_experts":4,"n_shared_experts":1,"num_experts_per_tok":2,"norm_topk_prob":true,"scoring_func":"sqrtsoftplus","routed_scaling_factor":1.5,"topk_method":"noaux_tc","num_hash_layers":0,"swiglu_limit":0.0,"q_lora_rank":160,"head_dim":96,"qk_rope_head_dim":32,"nope_head_dim":64,"o_groups":2,"o_lora_rank":80,"sliding_window":128,"compress_ratios":[0,0,0,0,0,0,0,0,0],"compress_rope_theta":160000.0,"index_n_heads":64,"index_head_dim":128,"index_topk":512,"hc_mult":4,"hc_sinkhorn_iters":2,"hc_eps":1e-06,"num_nextn_predict_layers":1,"hidden_act":"silu","max_position_embeddings":2048,"initializer_range":0.02,"rms_norm_eps":1e-06,"use_cache":true,"rope_theta":10000.0,"attention_bias":false,"attention_dropout":0.0,"transformers_version":"5.8.0","architectures":null,"output_hidden_states":false,"return_dict":true,"dtype":null,"chunk_size_feed_forward":0,"is_encoder_decoder":false,"problem_type":null,"pad_token_id":null,"bos_token_id":0,"eos_token_id":1,"tie_word_embeddings":false,"model_type":"deepseek_v4","output_attentions":false},"tree":{"name":"model","type":"DeepseekV4ForCausalLM","params":110369621,"shape":null,"children":[{"name":"model","type":"DeepseekV4Model","params":69000021,"shape":null,"children":[{"name":"embed_tokens","type":"Embedding","params":41369600,"shape":null,"children":[{"name":"weight","type":"Parameter","params":41369600,"shape":[129280,320],"children":[]}]},{"name":"layers","type":"ModuleList","params":27624976,"shape":null,"children":[{"name":"0","type":"DeepseekV4Block","params":3453122,"shape":null,"children":[{"name":"attn","type":"DeepseekV4Attention","params":317704,"shape":null,"children":[{"name":"wq_a","type":"Linear","params":51200,"shape":null,"children":[{"name":"weight","type":"Parameter","params":51200,"shape":[160,320],"children":[]}]},{"name":"q_norm","type":"DeepseekV4RMSNorm","params":160,"shape":null,"children":[{"name":"weight","type":"Parameter","params":160,"shape":[160],"children":[]}]},{"name":"wq_b","type":"Linear","params":122880,"shape":null,"children":[{"name":"weight","type":"Parameter","params":122880,"shape":[768,160],"children":[]}]},{"name":"wkv","type":"Linear","params":30720,"shape":null,"children":[{"name":"weight","type":"Parameter","params":30720,"shape":[96,320],"children":[]}]},{"name":"kv_norm","type":"DeepseekV4RMSNorm","params":96,"shape":null,"children":[{"name":"weight","type":"Parameter","params":96,"shape":[96],"children":[]}]},{"name":"wo_a","type":"Linear","params":61440,"shape":null,"children":[{"name":"weight","type":"Parameter","params":61440,"shape":[160,384],"children":[]}]},{"name":"wo_b","type":"Linear","params":51200,"shape":null,"children":[{"name":"weight","type":"Parameter","params":51200,"shape":[320,160],"children":[]}]},{"name":"attn_sink","type":"Parameter","params":8,"shape":[8],"children":[]}]},{"name":"ffn","type":"DeepseekV4MoE","params":3073284,"shape":null,"children":[{"name":"gate","type":"DeepseekV4Gate","params":1284,"shape":null,"children":[{"name":"weight","type":"Parameter","params":1280,"shape":[4,320],"children":[]},{"name":"bias","type":"Parameter","params":4,"shape":[4],"children":[]}]},{"name":"experts","type":"ModuleList","params":2457600,"shape":null,"children":[{"name":"0","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"1","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"2","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"3","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]}]},{"name":"shared_expert","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]}]},{"name":"attn_norm","type":"DeepseekV4RMSNorm","params":320,"shape":null,"children":[{"name":"weight","type":"Parameter","params":320,"shape":[320],"children":[]}]},{"name":"ffn_norm","type":"DeepseekV4RMSNorm","params":320,"shape":null,"children":[{"name":"weight","type":"Parameter","params":320,"shape":[320],"children":[]}]},{"name":"hc_attn_fn","type":"Parameter","params":30720,"shape":[24,1280],"children":[]},{"name":"hc_ffn_fn","type":"Parameter","params":30720,"shape":[24,1280],"children":[]},{"name":"hc_attn_base","type":"Parameter","params":24,"shape":[24],"children":[]},{"name":"hc_ffn_base","type":"Parameter","params":24,"shape":[24],"children":[]},{"name":"hc_attn_scale","type":"Parameter","params":3,"shape":[3],"children":[]},{"name":"hc_ffn_scale","type":"Parameter","params":3,"shape":[3],"children":[]}]},{"name":"1","type":"DeepseekV4Block","params":3453122,"shape":null,"children":[{"name":"attn","type":"DeepseekV4Attention","params":317704,"shape":null,"children":[{"name":"wq_a","type":"Linear","params":51200,"shape":null,"children":[{"name":"weight","type":"Parameter","params":51200,"shape":[160,320],"children":[]}]},{"name":"q_norm","type":"DeepseekV4RMSNorm","params":160,"shape":null,"children":[{"name":"weight","type":"Parameter","params":160,"shape":[160],"children":[]}]},{"name":"wq_b","type":"Linear","params":122880,"shape":null,"children":[{"name":"weight","type":"Parameter","params":122880,"shape":[768,160],"children":[]}]},{"name":"wkv","type":"Linear","params":30720,"shape":null,"children":[{"name":"weight","type":"Parameter","params":30720,"shape":[96,320],"children":[]}]},{"name":"kv_norm","type":"DeepseekV4RMSNorm","params":96,"shape":null,"children":[{"name":"weight","type":"Parameter","params":96,"shape":[96],"children":[]}]},{"name":"wo_a","type":"Linear","params":61440,"shape":null,"children":[{"name":"weight","type":"Parameter","params":61440,"shape":[160,384],"children":[]}]},{"name":"wo_b","type":"Linear","params":51200,"shape":null,"children":[{"name":"weight","type":"Parameter","params":51200,"shape":[320,160],"children":[]}]},{"name":"attn_sink","type":"Parameter","params":8,"shape":[8],"children":[]}]},{"name":"ffn","type":"DeepseekV4MoE","params":3073284,"shape":null,"children":[{"name":"gate","type":"DeepseekV4Gate","params":1284,"shape":null,"children":[{"name":"weight","type":"Parameter","params":1280,"shape":[4,320],"children":[]},{"name":"bias","type":"Parameter","params":4,"shape":[4],"children":[]}]},{"name":"experts","type":"ModuleList","params":2457600,"shape":null,"children":[{"name":"0","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"1","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"2","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"3","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]}]},{"name":"shared_expert","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]}]},{"name":"attn_norm","type":"DeepseekV4RMSNorm","params":320,"shape":null,"children":[{"name":"weight","type":"Parameter","params":320,"shape":[320],"children":[]}]},{"name":"ffn_norm","type":"DeepseekV4RMSNorm","params":320,"shape":null,"children":[{"name":"weight","type":"Parameter","params":320,"shape":[320],"children":[]}]},{"name":"hc_attn_fn","type":"Parameter","params":30720,"shape":[24,1280],"children":[]},{"name":"hc_ffn_fn","type":"Parameter","params":30720,"shape":[24,1280],"children":[]},{"name":"hc_attn_base","type":"Parameter","params":24,"shape":[24],"children":[]},{"name":"hc_ffn_base","type":"Parameter","params":24,"shape":[24],"children":[]},{"name":"hc_attn_scale","type":"Parameter","params":3,"shape":[3],"children":[]},{"name":"hc_ffn_scale","type":"Parameter","params":3,"shape":[3],"children":[]}]},{"name":"2","type":"DeepseekV4Block","params":3453122,"shape":null,"children":[{"name":"attn","type":"DeepseekV4Attention","params":317704,"shape":null,"children":[{"name":"wq_a","type":"Linear","params":51200,"shape":null,"children":[{"name":"weight","type":"Parameter","params":51200,"shape":[160,320],"children":[]}]},{"name":"q_norm","type":"DeepseekV4RMSNorm","params":160,"shape":null,"children":[{"name":"weight","type":"Parameter","params":160,"shape":[160],"children":[]}]},{"name":"wq_b","type":"Linear","params":122880,"shape":null,"children":[{"name":"weight","type":"Parameter","params":122880,"shape":[768,160],"children":[]}]},{"name":"wkv","type":"Linear","params":30720,"shape":null,"children":[{"name":"weight","type":"Parameter","params":30720,"shape":[96,320],"children":[]}]},{"name":"kv_norm","type":"DeepseekV4RMSNorm","params":96,"shape":null,"children":[{"name":"weight","type":"Parameter","params":96,"shape":[96],"children":[]}]},{"name":"wo_a","type":"Linear","params":61440,"shape":null,"children":[{"name":"weight","type":"Parameter","params":61440,"shape":[160,384],"children":[]}]},{"name":"wo_b","type":"Linear","params":51200,"shape":null,"children":[{"name":"weight","type":"Parameter","params":51200,"shape":[320,160],"children":[]}]},{"name":"attn_sink","type":"Parameter","params":8,"shape":[8],"children":[]}]},{"name":"ffn","type":"DeepseekV4MoE","params":3073284,"shape":null,"children":[{"name":"gate","type":"DeepseekV4Gate","params":1284,"shape":null,"children":[{"name":"weight","type":"Parameter","params":1280,"shape":[4,320],"children":[]},{"name":"bias","type":"Parameter","params":4,"shape":[4],"children":[]}]},{"name":"experts","type":"ModuleList","params":2457600,"shape":null,"children":[{"name":"0","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"1","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"2","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"3","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]}]},{"name":"shared_expert","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]}]},{"name":"attn_norm","type":"DeepseekV4RMSNorm","params":320,"shape":null,"children":[{"name":"weight","type":"Parameter","params":320,"shape":[320],"children":[]}]},{"name":"ffn_norm","type":"DeepseekV4RMSNorm","params":320,"shape":null,"children":[{"name":"weight","type":"Parameter","params":320,"shape":[320],"children":[]}]},{"name":"hc_attn_fn","type":"Parameter","params":30720,"shape":[24,1280],"children":[]},{"name":"hc_ffn_fn","type":"Parameter","params":30720,"shape":[24,1280],"children":[]},{"name":"hc_attn_base","type":"Parameter","params":24,"shape":[24],"children":[]},{"name":"hc_ffn_base","type":"Parameter","params":24,"shape":[24],"children":[]},{"name":"hc_attn_scale","type":"Parameter","params":3,"shape":[3],"children":[]},{"name":"hc_ffn_scale","type":"Parameter","params":3,"shape":[3],"children":[]}]},{"name":"3","type":"DeepseekV4Block","params":3453122,"shape":null,"children":[{"name":"attn","type":"DeepseekV4Attention","params":317704,"shape":null,"children":[{"name":"wq_a","type":"Linear","params":51200,"shape":null,"children":[{"name":"weight","type":"Parameter","params":51200,"shape":[160,320],"children":[]}]},{"name":"q_norm","type":"DeepseekV4RMSNorm","params":160,"shape":null,"children":[{"name":"weight","type":"Parameter","params":160,"shape":[160],"children":[]}]},{"name":"wq_b","type":"Linear","params":122880,"shape":null,"children":[{"name":"weight","type":"Parameter","params":122880,"shape":[768,160],"children":[]}]},{"name":"wkv","type":"Linear","params":30720,"shape":null,"children":[{"name":"weight","type":"Parameter","params":30720,"shape":[96,320],"children":[]}]},{"name":"kv_norm","type":"DeepseekV4RMSNorm","params":96,"shape":null,"children":[{"name":"weight","type":"Parameter","params":96,"shape":[96],"children":[]}]},{"name":"wo_a","type":"Linear","params":61440,"shape":null,"children":[{"name":"weight","type":"Parameter","params":61440,"shape":[160,384],"children":[]}]},{"name":"wo_b","type":"Linear","params":51200,"shape":null,"children":[{"name":"weight","type":"Parameter","params":51200,"shape":[320,160],"children":[]}]},{"name":"attn_sink","type":"Parameter","params":8,"shape":[8],"children":[]}]},{"name":"ffn","type":"DeepseekV4MoE","params":3073284,"shape":null,"children":[{"name":"gate","type":"DeepseekV4Gate","params":1284,"shape":null,"children":[{"name":"weight","type":"Parameter","params":1280,"shape":[4,320],"children":[]},{"name":"bias","type":"Parameter","params":4,"shape":[4],"children":[]}]},{"name":"experts","type":"ModuleList","params":2457600,"shape":null,"children":[{"name":"0","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"1","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"2","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"3","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]}]},{"name":"shared_expert","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]}]},{"name":"attn_norm","type":"DeepseekV4RMSNorm","params":320,"shape":null,"children":[{"name":"weight","type":"Parameter","params":320,"shape":[320],"children":[]}]},{"name":"ffn_norm","type":"DeepseekV4RMSNorm","params":320,"shape":null,"children":[{"name":"weight","type":"Parameter","params":320,"shape":[320],"children":[]}]},{"name":"hc_attn_fn","type":"Parameter","params":30720,"shape":[24,1280],"children":[]},{"name":"hc_ffn_fn","type":"Parameter","params":30720,"shape":[24,1280],"children":[]},{"name":"hc_attn_base","type":"Parameter","params":24,"shape":[24],"children":[]},{"name":"hc_ffn_base","type":"Parameter","params":24,"shape":[24],"children":[]},{"name":"hc_attn_scale","type":"Parameter","params":3,"shape":[3],"children":[]},{"name":"hc_ffn_scale","type":"Parameter","params":3,"shape":[3],"children":[]}]},{"name":"4","type":"DeepseekV4Block","params":3453122,"shape":null,"children":[{"name":"attn","type":"DeepseekV4Attention","params":317704,"shape":null,"children":[{"name":"wq_a","type":"Linear","params":51200,"shape":null,"children":[{"name":"weight","type":"Parameter","params":51200,"shape":[160,320],"children":[]}]},{"name":"q_norm","type":"DeepseekV4RMSNorm","params":160,"shape":null,"children":[{"name":"weight","type":"Parameter","params":160,"shape":[160],"children":[]}]},{"name":"wq_b","type":"Linear","params":122880,"shape":null,"children":[{"name":"weight","type":"Parameter","params":122880,"shape":[768,160],"children":[]}]},{"name":"wkv","type":"Linear","params":30720,"shape":null,"children":[{"name":"weight","type":"Parameter","params":30720,"shape":[96,320],"children":[]}]},{"name":"kv_norm","type":"DeepseekV4RMSNorm","params":96,"shape":null,"children":[{"name":"weight","type":"Parameter","params":96,"shape":[96],"children":[]}]},{"name":"wo_a","type":"Linear","params":61440,"shape":null,"children":[{"name":"weight","type":"Parameter","params":61440,"shape":[160,384],"children":[]}]},{"name":"wo_b","type":"Linear","params":51200,"shape":null,"children":[{"name":"weight","type":"Parameter","params":51200,"shape":[320,160],"children":[]}]},{"name":"attn_sink","type":"Parameter","params":8,"shape":[8],"children":[]}]},{"name":"ffn","type":"DeepseekV4MoE","params":3073284,"shape":null,"children":[{"name":"gate","type":"DeepseekV4Gate","params":1284,"shape":null,"children":[{"name":"weight","type":"Parameter","params":1280,"shape":[4,320],"children":[]},{"name":"bias","type":"Parameter","params":4,"shape":[4],"children":[]}]},{"name":"experts","type":"ModuleList","params":2457600,"shape":null,"children":[{"name":"0","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"1","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"2","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"3","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]}]},{"name":"shared_expert","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]}]},{"name":"attn_norm","type":"DeepseekV4RMSNorm","params":320,"shape":null,"children":[{"name":"weight","type":"Parameter","params":320,"shape":[320],"children":[]}]},{"name":"ffn_norm","type":"DeepseekV4RMSNorm","params":320,"shape":null,"children":[{"name":"weight","type":"Parameter","params":320,"shape":[320],"children":[]}]},{"name":"hc_attn_fn","type":"Parameter","params":30720,"shape":[24,1280],"children":[]},{"name":"hc_ffn_fn","type":"Parameter","params":30720,"shape":[24,1280],"children":[]},{"name":"hc_attn_base","type":"Parameter","params":24,"shape":[24],"children":[]},{"name":"hc_ffn_base","type":"Parameter","params":24,"shape":[24],"children":[]},{"name":"hc_attn_scale","type":"Parameter","params":3,"shape":[3],"children":[]},{"name":"hc_ffn_scale","type":"Parameter","params":3,"shape":[3],"children":[]}]},{"name":"5","type":"DeepseekV4Block","params":3453122,"shape":null,"children":[{"name":"attn","type":"DeepseekV4Attention","params":317704,"shape":null,"children":[{"name":"wq_a","type":"Linear","params":51200,"shape":null,"children":[{"name":"weight","type":"Parameter","params":51200,"shape":[160,320],"children":[]}]},{"name":"q_norm","type":"DeepseekV4RMSNorm","params":160,"shape":null,"children":[{"name":"weight","type":"Parameter","params":160,"shape":[160],"children":[]}]},{"name":"wq_b","type":"Linear","params":122880,"shape":null,"children":[{"name":"weight","type":"Parameter","params":122880,"shape":[768,160],"children":[]}]},{"name":"wkv","type":"Linear","params":30720,"shape":null,"children":[{"name":"weight","type":"Parameter","params":30720,"shape":[96,320],"children":[]}]},{"name":"kv_norm","type":"DeepseekV4RMSNorm","params":96,"shape":null,"children":[{"name":"weight","type":"Parameter","params":96,"shape":[96],"children":[]}]},{"name":"wo_a","type":"Linear","params":61440,"shape":null,"children":[{"name":"weight","type":"Parameter","params":61440,"shape":[160,384],"children":[]}]},{"name":"wo_b","type":"Linear","params":51200,"shape":null,"children":[{"name":"weight","type":"Parameter","params":51200,"shape":[320,160],"children":[]}]},{"name":"attn_sink","type":"Parameter","params":8,"shape":[8],"children":[]}]},{"name":"ffn","type":"DeepseekV4MoE","params":3073284,"shape":null,"children":[{"name":"gate","type":"DeepseekV4Gate","params":1284,"shape":null,"children":[{"name":"weight","type":"Parameter","params":1280,"shape":[4,320],"children":[]},{"name":"bias","type":"Parameter","params":4,"shape":[4],"children":[]}]},{"name":"experts","type":"ModuleList","params":2457600,"shape":null,"children":[{"name":"0","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"1","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"2","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"3","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]}]},{"name":"shared_expert","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]}]},{"name":"attn_norm","type":"DeepseekV4RMSNorm","params":320,"shape":null,"children":[{"name":"weight","type":"Parameter","params":320,"shape":[320],"children":[]}]},{"name":"ffn_norm","type":"DeepseekV4RMSNorm","params":320,"shape":null,"children":[{"name":"weight","type":"Parameter","params":320,"shape":[320],"children":[]}]},{"name":"hc_attn_fn","type":"Parameter","params":30720,"shape":[24,1280],"children":[]},{"name":"hc_ffn_fn","type":"Parameter","params":30720,"shape":[24,1280],"children":[]},{"name":"hc_attn_base","type":"Parameter","params":24,"shape":[24],"children":[]},{"name":"hc_ffn_base","type":"Parameter","params":24,"shape":[24],"children":[]},{"name":"hc_attn_scale","type":"Parameter","params":3,"shape":[3],"children":[]},{"name":"hc_ffn_scale","type":"Parameter","params":3,"shape":[3],"children":[]}]},{"name":"6","type":"DeepseekV4Block","params":3453122,"shape":null,"children":[{"name":"attn","type":"DeepseekV4Attention","params":317704,"shape":null,"children":[{"name":"wq_a","type":"Linear","params":51200,"shape":null,"children":[{"name":"weight","type":"Parameter","params":51200,"shape":[160,320],"children":[]}]},{"name":"q_norm","type":"DeepseekV4RMSNorm","params":160,"shape":null,"children":[{"name":"weight","type":"Parameter","params":160,"shape":[160],"children":[]}]},{"name":"wq_b","type":"Linear","params":122880,"shape":null,"children":[{"name":"weight","type":"Parameter","params":122880,"shape":[768,160],"children":[]}]},{"name":"wkv","type":"Linear","params":30720,"shape":null,"children":[{"name":"weight","type":"Parameter","params":30720,"shape":[96,320],"children":[]}]},{"name":"kv_norm","type":"DeepseekV4RMSNorm","params":96,"shape":null,"children":[{"name":"weight","type":"Parameter","params":96,"shape":[96],"children":[]}]},{"name":"wo_a","type":"Linear","params":61440,"shape":null,"children":[{"name":"weight","type":"Parameter","params":61440,"shape":[160,384],"children":[]}]},{"name":"wo_b","type":"Linear","params":51200,"shape":null,"children":[{"name":"weight","type":"Parameter","params":51200,"shape":[320,160],"children":[]}]},{"name":"attn_sink","type":"Parameter","params":8,"shape":[8],"children":[]}]},{"name":"ffn","type":"DeepseekV4MoE","params":3073284,"shape":null,"children":[{"name":"gate","type":"DeepseekV4Gate","params":1284,"shape":null,"children":[{"name":"weight","type":"Parameter","params":1280,"shape":[4,320],"children":[]},{"name":"bias","type":"Parameter","params":4,"shape":[4],"children":[]}]},{"name":"experts","type":"ModuleList","params":2457600,"shape":null,"children":[{"name":"0","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"1","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"2","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"3","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]}]},{"name":"shared_expert","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]}]},{"name":"attn_norm","type":"DeepseekV4RMSNorm","params":320,"shape":null,"children":[{"name":"weight","type":"Parameter","params":320,"shape":[320],"children":[]}]},{"name":"ffn_norm","type":"DeepseekV4RMSNorm","params":320,"shape":null,"children":[{"name":"weight","type":"Parameter","params":320,"shape":[320],"children":[]}]},{"name":"hc_attn_fn","type":"Parameter","params":30720,"shape":[24,1280],"children":[]},{"name":"hc_ffn_fn","type":"Parameter","params":30720,"shape":[24,1280],"children":[]},{"name":"hc_attn_base","type":"Parameter","params":24,"shape":[24],"children":[]},{"name":"hc_ffn_base","type":"Parameter","params":24,"shape":[24],"children":[]},{"name":"hc_attn_scale","type":"Parameter","params":3,"shape":[3],"children":[]},{"name":"hc_ffn_scale","type":"Parameter","params":3,"shape":[3],"children":[]}]},{"name":"7","type":"DeepseekV4Block","params":3453122,"shape":null,"children":[{"name":"attn","type":"DeepseekV4Attention","params":317704,"shape":null,"children":[{"name":"wq_a","type":"Linear","params":51200,"shape":null,"children":[{"name":"weight","type":"Parameter","params":51200,"shape":[160,320],"children":[]}]},{"name":"q_norm","type":"DeepseekV4RMSNorm","params":160,"shape":null,"children":[{"name":"weight","type":"Parameter","params":160,"shape":[160],"children":[]}]},{"name":"wq_b","type":"Linear","params":122880,"shape":null,"children":[{"name":"weight","type":"Parameter","params":122880,"shape":[768,160],"children":[]}]},{"name":"wkv","type":"Linear","params":30720,"shape":null,"children":[{"name":"weight","type":"Parameter","params":30720,"shape":[96,320],"children":[]}]},{"name":"kv_norm","type":"DeepseekV4RMSNorm","params":96,"shape":null,"children":[{"name":"weight","type":"Parameter","params":96,"shape":[96],"children":[]}]},{"name":"wo_a","type":"Linear","params":61440,"shape":null,"children":[{"name":"weight","type":"Parameter","params":61440,"shape":[160,384],"children":[]}]},{"name":"wo_b","type":"Linear","params":51200,"shape":null,"children":[{"name":"weight","type":"Parameter","params":51200,"shape":[320,160],"children":[]}]},{"name":"attn_sink","type":"Parameter","params":8,"shape":[8],"children":[]}]},{"name":"ffn","type":"DeepseekV4MoE","params":3073284,"shape":null,"children":[{"name":"gate","type":"DeepseekV4Gate","params":1284,"shape":null,"children":[{"name":"weight","type":"Parameter","params":1280,"shape":[4,320],"children":[]},{"name":"bias","type":"Parameter","params":4,"shape":[4],"children":[]}]},{"name":"experts","type":"ModuleList","params":2457600,"shape":null,"children":[{"name":"0","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"1","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"2","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]},{"name":"3","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]}]},{"name":"shared_expert","type":"DeepseekV4Expert","params":614400,"shape":null,"children":[{"name":"w1","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]},{"name":"w2","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[320,640],"children":[]}]},{"name":"w3","type":"Linear","params":204800,"shape":null,"children":[{"name":"weight","type":"Parameter","params":204800,"shape":[640,320],"children":[]}]}]}]},{"name":"attn_norm","type":"DeepseekV4RMSNorm","params":320,"shape":null,"children":[{"name":"weight","type":"Parameter","params":320,"shape":[320],"children":[]}]},{"name":"ffn_norm","type":"DeepseekV4RMSNorm","params":320,"shape":null,"children":[{"name":"weight","type":"Parameter","params":320,"shape":[320],"children":[]}]},{"name":"hc_attn_fn","type":"Parameter","params":30720,"shape":[24,1280],"children":[]},{"name":"hc_ffn_fn","type":"Parameter","params":30720,"shape":[24,1280],"children":[]},{"name":"hc_attn_base","type":"Parameter","params":24,"shape":[24],"children":[]},{"name":"hc_ffn_base","type":"Parameter","params":24,"shape":[24],"children":[]},{"name":"hc_attn_scale","type":"Parameter","params":3,"shape":[3],"children":[]},{"name":"hc_ffn_scale","type":"Parameter","params":3,"shape":[3],"children":[]}]}]},{"name":"norm","type":"DeepseekV4RMSNorm","params":320,"shape":null,"children":[{"name":"weight","type":"Parameter","params":320,"shape":[320],"children":[]}]},{"name":"hc_head_fn","type":"Parameter","params":5120,"shape":[4,1280],"children":[]},{"name":"hc_head_base","type":"Parameter","params":4,"shape":[4],"children":[]},{"name":"hc_head_scale","type":"Parameter","params":1,"shape":[1],"children":[]}]},{"name":"lm_head","type":"Linear","params":41369600,"shape":null,"children":[{"name":"weight","type":"Parameter","params":41369600,"shape":[129280,320],"children":[]}]}]},"summary":{"total_params":110369621,"num_hidden_layers":8,"hidden_size":320,"vocab_size":129280,"hc_mult":4,"n_routed_experts":4,"n_shared_experts":1,"num_experts_per_tok":2,"num_attention_heads":8,"num_key_value_heads":1,"head_dim":96,"qk_rope_head_dim":32,"q_lora_rank":160,"o_lora_rank":80,"o_groups":2,"moe_intermediate_size":640,"max_position_embeddings":2048}};
+// ============================================================================
+//  nanowhale architecture — hand-curated visualization
+//
+//  Everything is rendered procedurally from the PIPE descriptor below. Each
+//  step in the forward pass becomes one block. Layer 0 is expanded by default
+//  to expose the MLA / MoE / HC substructure, layers 1–7 stay collapsed unless
+//  clicked. Coordinates are computed in a single layout pass so the diagram
+//  re-flows whenever a layer toggles.
+// ============================================================================
 
-// ---------- header stats ----------
-(function () {
-  const s = ARCH.summary;
-  const fmt = n => n.toLocaleString();
-  const fmtParams = n => (n / 1e6).toFixed(1) + 'M';
-  const chips = [
-    ['Total params', fmtParams(s.total_params)],
-    ['Layers', s.num_hidden_layers],
-    ['Hidden', s.hidden_size],
-    ['HC mult', s.hc_mult],
-    ['Heads', `${s.num_attention_heads} (${s.num_key_value_heads} KV)`],
-    ['head_dim', `${s.head_dim} (${s.qk_rope_head_dim} RoPE + ${s.head_dim - s.qk_rope_head_dim} NoPE)`],
-    ['MoE', `${s.n_routed_experts}r + ${s.n_shared_experts}s, top-${s.num_experts_per_tok}`],
-    ['FFN dim', s.moe_intermediate_size],
-    ['Context', fmt(s.max_position_embeddings)],
-    ['Vocab', fmt(s.vocab_size)],
+const CFG = {
+  hidden: 320,
+  num_layers: 8,
+  vocab: 129280,
+  num_heads: 8,
+  num_kv_heads: 1,
+  head_dim: 96,
+  rope_dim: 32,
+  nope_dim: 64,
+  q_lora: 160,
+  o_groups: 2,
+  o_lora: 80,
+  hc_mult: 4,
+  hc_sinkhorn_iters: 2,
+  n_routed: 4,
+  n_shared: 1,
+  top_k: 2,
+  moe_ffn: 640,
+  ctx: 2048,
+  routed_scaling_factor: 1.5,
+};
+
+const PARAMS = {
+  embed:     CFG.vocab * CFG.hidden,                          // 41,369,600
+  wq_a:      CFG.hidden * CFG.q_lora,                         // 51,200
+  q_norm:    CFG.q_lora,                                      // 160
+  wq_b:      CFG.q_lora * (CFG.num_heads * CFG.head_dim),     // 122,880
+  wkv:       CFG.hidden * CFG.head_dim,                       // 30,720
+  kv_norm:   CFG.head_dim,                                    // 96
+  wo_a:      CFG.num_heads * CFG.head_dim * CFG.o_lora,       // 61,440
+  wo_b:      CFG.o_groups * CFG.o_lora * CFG.hidden,          // 51,200
+  gate:      CFG.n_routed * CFG.hidden,                       // 1,280
+  expert:    3 * CFG.hidden * CFG.moe_ffn,                    // 614,400
+  hc_fn:     24 * (CFG.hc_mult * CFG.hidden),                 // 30,720
+  attn_norm: CFG.hidden,                                      // 320
+  lm_head:   CFG.hidden * CFG.vocab,                          // 41,369,600
+};
+PARAMS.attn_total =
+  PARAMS.wq_a + PARAMS.q_norm + PARAMS.wq_b + PARAMS.wkv + PARAMS.kv_norm
+  + PARAMS.wo_a + PARAMS.wo_b + CFG.num_heads;
+PARAMS.moe_total = PARAMS.gate + (CFG.n_routed + CFG.n_shared) * PARAMS.expert;
+PARAMS.hc_block  = 2 * PARAMS.hc_fn + 2 * 24 + 2 * 3;
+PARAMS.layer_total = PARAMS.attn_total + PARAMS.moe_total + 2 * PARAMS.attn_norm + PARAMS.hc_block;
+PARAMS.total =
+  PARAMS.embed + CFG.num_layers * PARAMS.layer_total +
+  (CFG.hc_mult * CFG.hidden + CFG.hc_mult + 1) +
+  CFG.hidden + PARAMS.lm_head;
+
+const fmt  = n => n.toLocaleString('en-US');
+const fmtP = n => n >= 1e6 ? (n/1e6).toFixed(2) + 'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'K' : ''+n;
+
+function layerBlocks(idx) {
+  const L = `L${idx}`;
+  return [
+    { id:`${L}.hc_pre_a`, kind:'op', color:'hc', label:'HC pre',
+      sub:`Sinkhorn (${CFG.hc_sinkhorn_iters} iter)`, detail:'hcPre'},
+    { id:`${L}.x_a`, kind:'tensor', color:'tensor', label:'x',
+      shape:`[B, S, ${CFG.hidden}]`, detail:'tensorX'},
+    { id:`${L}.attn_norm`, kind:'op', color:'norm', label:'attn_norm',
+      sub:'RMSNorm', detail:'rmsnorm'},
+
+    { id:`${L}.mla.region`, kind:'region', label:'Multi-head Latent Attention (MLA)',
+      children:[
+        { id:`${L}.wq_a`, kind:'op', color:'attn', label:'wq_a',
+          sub:`[${CFG.hidden} → ${CFG.q_lora}]`, paramsKey:'wq_a', detail:'wq_a'},
+        { id:`${L}.q_norm`, kind:'op', color:'norm', label:'q_norm', sub:'RMSNorm', detail:'rmsnorm'},
+        { id:`${L}.wq_b`, kind:'op', color:'attn', label:'wq_b',
+          sub:`[${CFG.q_lora} → ${CFG.num_heads}×${CFG.head_dim}]`,
+          paramsKey:'wq_b', detail:'wq_b'},
+        { id:`${L}.q_rope`, kind:'op', color:'rope', label:'RoPE(q)',
+          sub:`last ${CFG.rope_dim} dims`, detail:'rope'},
+        { id:`${L}.wkv`, kind:'op', color:'attn', label:'wkv',
+          sub:`[${CFG.hidden} → ${CFG.head_dim}]   (1 KV head · MQA)`,
+          paramsKey:'wkv', detail:'wkv'},
+        { id:`${L}.kv_norm`, kind:'op', color:'norm', label:'kv_norm', sub:'RMSNorm', detail:'rmsnorm'},
+        { id:`${L}.kv_rope`, kind:'op', color:'rope', label:'RoPE(kv)',
+          sub:`last ${CFG.rope_dim} dims`, detail:'rope'},
+        { id:`${L}.sdpa`, kind:'op', color:'sdpa', label:'SDPA',
+          sub:`softmax(QKᵀ/√${CFG.head_dim}) · V   (causal, sink bias)`, detail:'sdpa'},
+        { id:`${L}.de_rope`, kind:'op', color:'rope', label:'de-RoPE(out)',
+          sub:'inverse rotation', detail:'derope'},
+        { id:`${L}.wo_a`, kind:'op', color:'attn', label:'wo_a (grouped)',
+          sub:`[${CFG.num_heads*CFG.head_dim/CFG.o_groups} → ${CFG.o_lora}] × ${CFG.o_groups} groups`,
+          paramsKey:'wo_a', detail:'wo_a'},
+        { id:`${L}.wo_b`, kind:'op', color:'attn', label:'wo_b',
+          sub:`[${CFG.o_groups*CFG.o_lora} → ${CFG.hidden}]`,
+          paramsKey:'wo_b', detail:'wo_b'},
+      ]},
+
+    { id:`${L}.hc_post_a`, kind:'op', color:'hc', label:'HC post',
+      sub:'post · attn_out + comb · residual', detail:'hcPost'},
+
+    { id:`${L}.hc_pre_f`, kind:'op', color:'hc', label:'HC pre',
+      sub:`Sinkhorn (${CFG.hc_sinkhorn_iters} iter)`, detail:'hcPre'},
+    { id:`${L}.x_f`, kind:'tensor', color:'tensor', label:'x',
+      shape:`[B, S, ${CFG.hidden}]`, detail:'tensorX'},
+    { id:`${L}.ffn_norm`, kind:'op', color:'norm', label:'ffn_norm', sub:'RMSNorm', detail:'rmsnorm'},
+
+    { id:`${L}.moe.region`, kind:'region', label:'Mixture-of-Experts (MoE)',
+      children:[
+        { id:`${L}.gate`, kind:'op', color:'router', label:'gate',
+          sub:`[${CFG.hidden} → ${CFG.n_routed}] · sqrtsoftplus · top-${CFG.top_k}`,
+          paramsKey:'gate', detail:'gate'},
+        { id:`${L}.experts`, kind:'experts',
+          label:`${CFG.n_routed} routed experts + ${CFG.n_shared} shared`,
+          detail:'experts'},
+        { id:`${L}.combine`, kind:'op', color:'moe', label:'combine',
+          sub:'Σᵢ wᵢ · expertᵢ(x) + shared(x)', detail:'combine'},
+      ]},
+
+    { id:`${L}.hc_post_f`, kind:'op', color:'hc', label:'HC post',
+      sub:'post · moe_out + comb · residual', detail:'hcPost'},
   ];
-  document.getElementById('stats').innerHTML =
-    chips.map(([k, v]) => `<span class="chip">${k} <b>${v}</b></span>`).join('');
-})();
+}
 
-// ---------- tabs ----------
-document.querySelectorAll('nav.tabs button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
-    document.getElementById('pane-' + btn.dataset.tab).classList.add('active');
-  });
-});
+const PIPE = [
+  { id:'tokens', kind:'tensor', color:'token', label:'tokens',
+    shape:`[B, S]    S ≤ ${CFG.ctx}`, detail:'tokens'},
+  { id:'embed', kind:'op', color:'embed', label:'embed_tokens',
+    sub:`nn.Embedding(${fmt(CFG.vocab)}, ${CFG.hidden})`,
+    paramsKey:'embed', detail:'embed'},
+  { id:'h0', kind:'tensor', color:'tensor', label:'h₀',
+    shape:`[B, S, ${CFG.hidden}]`, detail:'tensorH0'},
+  { id:'hc_expand', kind:'op', color:'hc', label:'HC expand',
+    sub:`unsqueeze + expand → ${CFG.hc_mult} copies`, detail:'hcExpand'},
+  { id:'h_hc', kind:'tensor', color:'tensor', label:'h_hc',
+    shape:`[B, S, ${CFG.hc_mult}, ${CFG.hidden}]`,
+    multiSheet: CFG.hc_mult, detail:'tensorHHC'},
 
-// ---------- compute-graph pan/zoom ----------
-(function () {
-  const host = document.getElementById('svg-host');
-  const svg = host.querySelector('svg');
-  if (!svg) return;
-  // Initial viewBox: derive from svg attributes if not set.
-  let vb = svg.viewBox.baseVal;
-  if (!vb || vb.width === 0) {
-    const w = parseFloat(svg.getAttribute('width')) || 1000;
-    const h = parseFloat(svg.getAttribute('height')) || 1000;
-    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-    vb = svg.viewBox.baseVal;
-  }
-  svg.removeAttribute('width');
-  svg.removeAttribute('height');
-  const original = { x: vb.x, y: vb.y, w: vb.width, h: vb.height };
-  let drag = null;
+  ...Array.from({length: CFG.num_layers}, (_, i) => ({
+    id:`layer${i}`, kind:'layer', idx:i, expanded: i === 0,
+    children: layerBlocks(i),
+  })),
 
-  function setVB(x, y, w, h) { svg.setAttribute('viewBox', `${x} ${y} ${w} ${h}`); }
-  function zoomAt(factor, cx, cy) {
-    const rect = host.getBoundingClientRect();
-    const px = (cx - rect.left) / rect.width;
-    const py = (cy - rect.top) / rect.height;
-    const wx = vb.x + vb.width * px;
-    const wy = vb.y + vb.height * py;
-    const newW = vb.width * factor;
-    const newH = vb.height * factor;
-    setVB(wx - newW * px, wy - newH * py, newW, newH);
-  }
-  host.addEventListener('mousedown', e => {
-    drag = { x: e.clientX, y: e.clientY, vx: vb.x, vy: vb.y };
-    host.classList.add('grabbing');
-  });
-  window.addEventListener('mousemove', e => {
-    if (!drag) return;
-    const rect = host.getBoundingClientRect();
-    const dx = (e.clientX - drag.x) * vb.width / rect.width;
-    const dy = (e.clientY - drag.y) * vb.height / rect.height;
-    setVB(drag.vx - dx, drag.vy - dy, vb.width, vb.height);
-  });
-  window.addEventListener('mouseup', () => { drag = null; host.classList.remove('grabbing'); });
-  host.addEventListener('wheel', e => {
-    e.preventDefault();
-    zoomAt(e.deltaY > 0 ? 1.15 : 1 / 1.15, e.clientX, e.clientY);
-  }, { passive: false });
-  document.getElementById('zoom-in').onclick = () => {
-    const rect = host.getBoundingClientRect();
-    zoomAt(1 / 1.25, rect.left + rect.width / 2, rect.top + rect.height / 2);
-  };
-  document.getElementById('zoom-out').onclick = () => {
-    const rect = host.getBoundingClientRect();
-    zoomAt(1.25, rect.left + rect.width / 2, rect.top + rect.height / 2);
-  };
-  document.getElementById('zoom-reset').onclick = () =>
-    setVB(original.x, original.y, original.w, original.h);
-})();
+  { id:'hc_head', kind:'op', color:'hc', label:'hc_head',
+    sub:`contract ${CFG.hc_mult} → 1`, detail:'hcHead'},
+  { id:'h_out', kind:'tensor', color:'tensor', label:'h_out',
+    shape:`[B, S, ${CFG.hidden}]`, detail:'tensorHOut'},
+  { id:'final_norm', kind:'op', color:'norm', label:'norm',
+    sub:'final RMSNorm', detail:'rmsnorm'},
+  { id:'lm_head', kind:'op', color:'lmhead', label:'lm_head',
+    sub:`Linear(${CFG.hidden}, ${fmt(CFG.vocab)})`,
+    paramsKey:'lm_head', detail:'lmHead'},
+  { id:'logits', kind:'tensor', color:'logits', label:'logits',
+    shape:`[B, S, ${fmt(CFG.vocab)}]`, detail:'logits'},
+];
 
-// ---------- module tree ----------
-(function () {
-  const root = document.getElementById('tree');
-  const detailBody = document.getElementById('detail-body');
-  const totalParams = ARCH.tree.params;
-  const fmt = n => n.toLocaleString();
+// ----------------------------------------------------------------------------
+// Layout
+// ----------------------------------------------------------------------------
 
-  function colorForType(t) {
-    if (t.includes('Attention')) return '#5eb1ff';
-    if (t.includes('MoE') || t.includes('Expert') || t.includes('Gate')) return '#b18cff';
-    if (t.includes('Norm')) return '#5ee0a0';
-    if (t === 'Embedding') return '#ffb86b';
-    if (t === 'Linear') return '#e1e5ec';
-    if (t === 'Parameter') return '#8a93a6';
-    if (t.includes('Block')) return '#ff9ed2';
-    return '#c7cfdc';
-  }
+const L = {
+  cx: 600,
+  blockW: 360,
+  narrowW: 280,
+  blockH: 54,
+  tensorH: 70,
+  layerHeaderH: 44,
+  innerPadTop: 18,
+  innerPadBottom: 22,
+  innerGap: 12,
+  outerGap: 24,
+  regionPad: 14,
+  regionLabelH: 22,
+  iso: 14,
+};
 
-  function build(node, path) {
-    const li = document.createElement('li');
-    const hasChildren = node.children && node.children.length > 0;
-    if (!hasChildren) li.classList.add('leaf');
-    // Auto-collapse anything below the first two levels by default.
-    if (path.split('.').length > 2) li.classList.add('collapsed');
-
-    const span = document.createElement('span');
-    span.className = 'node';
-    span.dataset.path = path;
-    span.innerHTML = `
-      <span class="twist">▾</span>
-      <span class="name">${node.name}</span>
-      <span class="type" style="color:${colorForType(node.type)}">${node.type}</span>
-      <span class="params">${fmt(node.params)} p${node.shape ? '' : ''}</span>
-      ${node.shape ? `<span class="shape">[${node.shape.join('×')}]</span>` : ''}
-    `;
-    span.addEventListener('click', e => {
-      e.stopPropagation();
-      if (hasChildren) li.classList.toggle('collapsed');
-      document.querySelectorAll('.tree .node.selected').forEach(n => n.classList.remove('selected'));
-      span.classList.add('selected');
-      showDetail(node, path);
-    });
-    li.appendChild(span);
-
-    if (hasChildren) {
-      const ul = document.createElement('ul');
-      for (const c of node.children) ul.appendChild(build(c, path + '.' + c.name));
-      li.appendChild(ul);
+function blockHeight(b) {
+  if (b.kind === 'tensor') return L.tensorH;
+  if (b.kind === 'experts') return 100;
+  return L.blockH;
+}
+function regionHeight(children) {
+  let h = L.regionLabelH;
+  for (const c of children) h += blockHeight(c) + L.innerGap;
+  return h + L.regionPad;
+}
+function layerHeight(b) {
+  let total = L.layerHeaderH;
+  if (b.expanded) {
+    total += L.innerPadTop;
+    for (const c of b.children) {
+      if (c.kind === 'region') total += regionHeight(c.children) + L.innerGap;
+      else total += blockHeight(c) + L.innerGap;
     }
-    return li;
+    total += L.innerPadBottom;
   }
+  return total;
+}
 
-  function showDetail(node, path) {
-    const pct = (node.params / totalParams) * 100;
-    detailBody.innerHTML = `
-      <dl class="kv">
-        <dt>name</dt><dd>${path}</dd>
-        <dt>type</dt><dd style="color:${colorForType(node.type)}">${node.type}</dd>
-        <dt>params</dt><dd>${fmt(node.params)} <span style="color:var(--muted)">(${pct.toFixed(2)}%)</span></dd>
-        ${node.shape ? `<dt>shape</dt><dd>[${node.shape.join(', ')}]</dd>` : ''}
-        <dt>children</dt><dd>${node.children.length}</dd>
-      </dl>
-      <div class="bar"><span style="width:${pct.toFixed(2)}%"></span></div>
-    `;
-  }
-
-  const ul = document.createElement('ul');
-  ul.appendChild(build(ARCH.tree, ARCH.tree.name));
-  root.appendChild(ul);
-
-  // ---------- search ----------
-  const search = document.getElementById('search');
-  search.addEventListener('input', () => {
-    const q = search.value.trim().toLowerCase();
-    const all = root.querySelectorAll('li');
-    if (!q) {
-      all.forEach(li => { li.classList.remove('hide'); });
-      return;
-    }
-    // Mark all hidden, then unhide matches and ancestors.
-    all.forEach(li => li.classList.add('hide'));
-    root.querySelectorAll('.node').forEach(n => {
-      const txt = (n.dataset.path + ' ' + n.textContent).toLowerCase();
-      if (txt.includes(q)) {
-        let li = n.parentElement;
-        while (li && li.tagName === 'LI') {
-          li.classList.remove('hide', 'collapsed');
-          li = li.parentElement && li.parentElement.parentElement;
+function layout() {
+  let y = 40;
+  const pos = {};
+  for (const b of PIPE) {
+    if (b.kind === 'layer') {
+      const h = layerHeight(b);
+      pos[b.id] = { y, h };
+      if (b.expanded) {
+        let cy = y + L.layerHeaderH + L.innerPadTop;
+        for (const c of b.children) {
+          if (c.kind === 'region') {
+            const rh = regionHeight(c.children);
+            pos[c.id] = { y: cy, h: rh };
+            let ry = cy + L.regionLabelH;
+            for (const rc of c.children) {
+              const ch = blockHeight(rc);
+              pos[rc.id] = { y: ry, h: ch };
+              ry += ch + L.innerGap;
+            }
+            cy += rh + L.innerGap;
+          } else {
+            const ch = blockHeight(c);
+            pos[c.id] = { y: cy, h: ch };
+            cy += ch + L.innerGap;
+          }
         }
       }
-    });
+      y += h + L.outerGap;
+    } else {
+      const h = blockHeight(b);
+      pos[b.id] = { y, h };
+      y += h + L.outerGap;
+    }
+  }
+  return { pos, totalH: y + 40 };
+}
+
+// ----------------------------------------------------------------------------
+// Rendering
+// ----------------------------------------------------------------------------
+
+const COLORS = {
+  token: 'var(--c-token)', embed: 'var(--c-embed)', tensor: 'var(--c-tensor)',
+  hc: 'var(--c-hc)', norm: 'var(--c-norm)', attn: 'var(--c-attn)',
+  moe: 'var(--c-moe)', rope: 'var(--c-rope)', sdpa: 'var(--c-sdpa)',
+  lmhead: 'var(--c-lmhead)', logits: 'var(--c-logits)',
+  router: 'var(--c-router)', expert: 'var(--c-expert)',
+};
+
+const LIGHT_LABEL = new Set(['hc', 'attn', 'moe', 'sdpa', 'router', 'expert']);
+
+function svg(tag, attrs = {}, ...kids) {
+  const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  for (const c of kids) {
+    if (c == null) continue;
+    if (typeof c === 'string') e.appendChild(document.createTextNode(c));
+    else e.appendChild(c);
+  }
+  return e;
+}
+
+function isoBlock(x, y, w, h, color) {
+  const d = L.iso;
+  const g = svg('g', {class: 'block'});
+  g.appendChild(svg('polygon', {
+    class: 'face top',
+    points: `${x},${y} ${x+w},${y} ${x+w+d},${y-d} ${x+d},${y-d}`,
+    fill: color,
+  }));
+  g.appendChild(svg('polygon', {
+    class: 'face right',
+    points: `${x+w},${y} ${x+w},${y+h} ${x+w+d},${y+h-d} ${x+w+d},${y-d}`,
+    fill: color,
+  }));
+  g.appendChild(svg('rect', {
+    class: 'face front', x, y, width: w, height: h, fill: color, rx: 3, ry: 3,
+  }));
+  g.appendChild(svg('rect', {
+    class: 'outline', x: x-2, y: y-2, width: w+4, height: h+4, rx: 5, ry: 5,
+  }));
+  return g;
+}
+
+function stackedBlock(x, y, w, h, color, n) {
+  const g = svg('g', {class: 'block'});
+  const off = 6;
+  for (let i = n - 1; i >= 0; i--) {
+    const op = 0.55 + i * (0.45 / Math.max(n - 1, 1));
+    g.appendChild(svg('rect', {
+      x: x + i * off, y: y - i * off, width: w, height: h, rx: 3, ry: 3,
+      fill: color, opacity: op,
+      stroke: 'rgba(0,0,0,0.35)', 'stroke-width': 0.5,
+    }));
+  }
+  g.appendChild(svg('rect', {
+    class: 'outline',
+    x: x - 2, y: y - (n-1) * off - 2,
+    width: w + (n-1) * off + 4, height: h + (n-1) * off + 4,
+    rx: 5, ry: 5,
+  }));
+  return g;
+}
+
+function expertsRow(x, y, w, h) {
+  const g = svg('g', {class: 'experts-row'});
+  const n = CFG.n_routed;
+  const gap = 10, sharedGap = 24, sharedW = 86;
+  const expW = (w - sharedGap - sharedW - (n - 1) * gap) / n;
+  for (let i = 0; i < n; i++) {
+    const ex = x + i * (expW + gap);
+    const inner = isoBlock(ex, y, expW, h, 'var(--c-expert)');
+    inner.setAttribute('data-sub', `expert-${i}`);
+    g.appendChild(inner);
+    g.appendChild(svg('text', {
+      x: ex + expW / 2, y: y + h / 2 - 2,
+      class: 'label light', 'text-anchor': 'middle',
+    }, `E${i}`));
+    g.appendChild(svg('text', {
+      x: ex + expW / 2, y: y + h / 2 + 14,
+      class: 'sublabel light', 'text-anchor': 'middle',
+    }, 'SwiGLU'));
+  }
+  const sx = x + w - sharedW;
+  const shared = isoBlock(sx, y, sharedW, h, 'var(--c-moe)');
+  shared.setAttribute('data-sub', 'shared');
+  g.appendChild(shared);
+  g.appendChild(svg('text', {
+    x: sx + sharedW / 2, y: y + h / 2 - 2,
+    class: 'label light', 'text-anchor': 'middle',
+  }, 'shared'));
+  g.appendChild(svg('text', {
+    x: sx + sharedW / 2, y: y + h / 2 + 14,
+    class: 'sublabel light', 'text-anchor': 'middle',
+  }, 'always on'));
+  return g;
+}
+
+function arrow(x, y1, y2) {
+  const g = svg('g', {class: 'edge'});
+  g.appendChild(svg('line', {x1: x, y1, x2: x, y2: y2 - 6, class: 'arrow'}));
+  g.appendChild(svg('polygon', {
+    points: `${x-4},${y2-6} ${x+4},${y2-6} ${x},${y2}`,
+    class: 'arrow-head',
+  }));
+  return g;
+}
+
+function renderBlock(scene, b, p, inLayer) {
+  const w = (inLayer || b.kind === 'experts' || (b.kind === 'op' && inLayer)) ? L.narrowW : L.blockW;
+  const x = L.cx - w / 2;
+  const y = p.y, h = p.h;
+  const color = COLORS[b.color] || COLORS.tensor;
+
+  const wrap = svg('g', {class: `block-wrap kind-${b.kind}`, 'data-id': b.id});
+
+  if (b.kind === 'experts') {
+    wrap.appendChild(expertsRow(x, y, w, h));
+  } else if (b.multiSheet) {
+    wrap.appendChild(stackedBlock(x, y, w, h, color, b.multiSheet));
+  } else {
+    wrap.appendChild(isoBlock(x, y, w, h, color));
+  }
+
+  if (b.kind !== 'experts' && b.label) {
+    const light = LIGHT_LABEL.has(b.color);
+    const labelCls = light ? 'label light' : 'label';
+    const subCls = light ? 'sublabel light' : 'sublabel';
+    const titleY = b.sub ? y + h / 2 - 3 : y + h / 2 + 5;
+    wrap.appendChild(svg('text', {
+      x: L.cx, y: titleY, class: labelCls, 'text-anchor': 'middle',
+    }, b.label));
+    if (b.sub) {
+      wrap.appendChild(svg('text', {
+        x: L.cx, y: y + h / 2 + 13, class: subCls, 'text-anchor': 'middle',
+      }, b.sub));
+    }
+  }
+
+  // Shape annotation on the right
+  if (b.kind === 'tensor' && b.shape) {
+    wrap.appendChild(svg('text', {
+      x: x + w + L.iso + 14, y: y + h / 2 + 4,
+      class: 'shape-tag',
+    }, b.shape));
+  }
+  if (b.paramsKey && PARAMS[b.paramsKey]) {
+    wrap.appendChild(svg('text', {
+      x: x + w + L.iso + 14, y: y + h / 2 + 4,
+      class: 'params-tag',
+    }, fmtP(PARAMS[b.paramsKey]) + ' p'));
+  }
+
+  wrap.addEventListener('click', (e) => {
+    e.stopPropagation();
+    selectBlock(b);
   });
-})();
+  scene.appendChild(wrap);
+}
+
+function renderRegion(scene, r, p) {
+  const w = L.narrowW + 60;
+  const x = L.cx - w / 2;
+  const wrap = svg('g', {class: 'region', 'data-id': r.id});
+  wrap.appendChild(svg('rect', {
+    class: 'outline-rect', x, y: p.y, width: w, height: p.h, rx: 8, ry: 8,
+  }));
+  wrap.appendChild(svg('text', {
+    x: x + 10, y: p.y + 15, class: 'region-label',
+  }, r.label.toUpperCase()));
+  scene.appendChild(wrap);
+}
+
+function renderLayer(scene, b, p) {
+  const w = L.blockW + 90;
+  const x = L.cx - w / 2;
+  const wrap = svg('g', {class: `layer-card ${b.expanded ? 'expanded' : ''}`, 'data-id': b.id});
+
+  wrap.appendChild(svg('rect', {
+    class: 'outline-rect', x, y: p.y, width: w, height: p.h, rx: 10, ry: 10,
+  }));
+
+  const header = svg('g', {class: 'header'});
+  header.appendChild(svg('rect', {
+    class: 'header-bg', x, y: p.y, width: w, height: L.layerHeaderH, rx: 10, ry: 10,
+  }));
+  header.appendChild(svg('text', {
+    x: x + 18, y: p.y + 27, class: 'header-label',
+  }, `Layer ${b.idx}`));
+  header.appendChild(svg('text', {
+    x: x + 110, y: p.y + 27, class: 'header-sub',
+  }, `${fmtP(PARAMS.layer_total)} params · attn ${fmtP(PARAMS.attn_total)} · MoE ${fmtP(PARAMS.moe_total)} · HC ${fmtP(PARAMS.hc_block)}`));
+  header.appendChild(svg('text', {
+    x: x + w - 18, y: p.y + 27, class: 'toggle', 'text-anchor': 'end',
+  }, b.expanded ? '▾  collapse' : '▸  expand'));
+  header.addEventListener('click', (e) => {
+    e.stopPropagation();
+    b.expanded = !b.expanded;
+    render();
+  });
+  wrap.appendChild(header);
+  scene.appendChild(wrap);
+}
+
+let SELECTED = null;
+let TOTAL_H = 0;
+const SCENE_W = 1200;
+
+function render() {
+  const { pos, totalH } = layout();
+  TOTAL_H = totalH;
+  const scene = document.getElementById('scene');
+  scene.innerHTML = '';
+  scene.setAttribute('width', SCENE_W);
+  scene.setAttribute('height', totalH);
+
+  // First pass: arrows
+  let lastBottom = null;
+  for (const b of PIPE) {
+    const p = pos[b.id];
+    if (lastBottom != null) scene.appendChild(arrow(L.cx, lastBottom, p.y));
+    if (b.kind === 'layer') {
+      lastBottom = p.y + p.h;
+      if (b.expanded) {
+        let prevBot = null;
+        for (const c of b.children) {
+          if (c.kind === 'region') {
+            const rp = pos[c.id];
+            if (prevBot != null) scene.appendChild(arrow(L.cx, prevBot, rp.y));
+            // inner arrows handled per region children below
+            let pb = rp.y + L.regionLabelH;
+            let first = true;
+            for (const rc of c.children) {
+              const rcp = pos[rc.id];
+              if (!first) scene.appendChild(arrow(L.cx, pb, rcp.y));
+              pb = rcp.y + rcp.h;
+              first = false;
+            }
+            prevBot = rp.y + rp.h;
+          } else {
+            const cp = pos[c.id];
+            if (prevBot != null) scene.appendChild(arrow(L.cx, prevBot, cp.y));
+            prevBot = cp.y + cp.h;
+          }
+        }
+      }
+    } else {
+      lastBottom = p.y + p.h;
+    }
+  }
+
+  // Second pass: blocks
+  for (const b of PIPE) {
+    const p = pos[b.id];
+    if (b.kind === 'layer') {
+      renderLayer(scene, b, p);
+      if (b.expanded) {
+        for (const c of b.children) {
+          if (c.kind === 'region') {
+            renderRegion(scene, c, pos[c.id]);
+            for (const rc of c.children) renderBlock(scene, rc, pos[rc.id], true);
+          } else {
+            renderBlock(scene, c, pos[c.id], true);
+          }
+        }
+      }
+    } else {
+      renderBlock(scene, b, p, false);
+    }
+  }
+
+  // Reapply selection
+  if (SELECTED) {
+    const el = scene.querySelector(`.block-wrap[data-id="${SELECTED.id}"] .block`);
+    if (el) el.classList.add('selected');
+  }
+  updateViewBox();
+}
+
+// ----------------------------------------------------------------------------
+// Pan / zoom
+// ----------------------------------------------------------------------------
+
+const view = { x: 0, y: 0, w: 1200, h: 0, scale: 1 };
+let dragging = null;
+
+function fitToView() {
+  const wrap = document.getElementById('canvas-wrap');
+  const rect = wrap.getBoundingClientRect();
+  view.w = rect.width;
+  view.h = rect.height;
+  // Fit whole diagram (width = SCENE_W ~ 720 effective, height = TOTAL_H)
+  const sx = rect.width / 720;
+  const sy = rect.height / TOTAL_H;
+  view.scale = Math.min(sx, sy) * 0.95;
+  view.x = L.cx - (rect.width / view.scale) / 2;
+  view.y = -20;
+}
+
+function updateViewBox() {
+  const wrap = document.getElementById('canvas-wrap');
+  const rect = wrap.getBoundingClientRect();
+  if (view.h === 0) {
+    fitToView();
+  }
+  const scene = document.getElementById('scene');
+  scene.setAttribute('viewBox', `${view.x} ${view.y} ${view.w / view.scale} ${view.h / view.scale}`);
+  scene.setAttribute('width', rect.width);
+  scene.setAttribute('height', rect.height);
+  document.getElementById('scale-label').textContent = Math.round(view.scale * 100) + '%';
+}
+
+function zoomAt(factor, clientX, clientY) {
+  const wrap = document.getElementById('canvas-wrap');
+  const rect = wrap.getBoundingClientRect();
+  const px = (clientX - rect.left) / rect.width;
+  const py = (clientY - rect.top) / rect.height;
+  const wx = view.x + (view.w / view.scale) * px;
+  const wy = view.y + (view.h / view.scale) * py;
+  const newScale = Math.max(0.15, Math.min(4, view.scale * factor));
+  view.scale = newScale;
+  view.x = wx - (view.w / view.scale) * px;
+  view.y = wy - (view.h / view.scale) * py;
+  updateViewBox();
+}
+
+function initPanZoom() {
+  const wrap = document.getElementById('canvas-wrap');
+  wrap.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    dragging = { sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y };
+    wrap.classList.add('grabbing');
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    view.x = dragging.vx - (e.clientX - dragging.sx) / view.scale;
+    view.y = dragging.vy - (e.clientY - dragging.sy) / view.scale;
+    updateViewBox();
+  });
+  window.addEventListener('mouseup', () => {
+    dragging = null;
+    wrap.classList.remove('grabbing');
+  });
+  wrap.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    zoomAt(e.deltaY > 0 ? 1 / 1.12 : 1.12, e.clientX, e.clientY);
+  }, { passive: false });
+
+  document.getElementById('zoom-in').onclick = () => {
+    const r = wrap.getBoundingClientRect();
+    zoomAt(1.2, r.left + r.width / 2, r.top + r.height / 2);
+  };
+  document.getElementById('zoom-out').onclick = () => {
+    const r = wrap.getBoundingClientRect();
+    zoomAt(1 / 1.2, r.left + r.width / 2, r.top + r.height / 2);
+  };
+  document.getElementById('fit').onclick = () => {
+    fitToView();
+    updateViewBox();
+  };
+  const expandBtn = document.getElementById('expand-all');
+  expandBtn.onclick = () => {
+    const layers = PIPE.filter(b => b.kind === 'layer');
+    const allExpanded = layers.every(b => b.expanded);
+    for (const b of layers) b.expanded = !allExpanded;
+    expandBtn.textContent = allExpanded ? 'Expand all layers' : 'Collapse all layers';
+    render();
+  };
+  window.addEventListener('resize', () => {
+    const r = wrap.getBoundingClientRect();
+    view.w = r.width; view.h = r.height;
+    updateViewBox();
+  });
+}
+
+// ----------------------------------------------------------------------------
+// Detail panel content
+// ----------------------------------------------------------------------------
+
+const DETAILS = {
+  tokens: {
+    title: 'Input tokens', color: 'token',
+    body: `<p>Discrete token IDs from the DeepSeek-V4 BPE tokenizer (vocab ${fmt(CFG.vocab)}).</p>
+           <p><span class="pill">B = batch</span><span class="pill">S ≤ ${CFG.ctx}</span></p>
+           <p>These integers are looked up in <code>embed_tokens</code> to get continuous embeddings.</p>`,
+  },
+  embed: {
+    title: 'embed_tokens — token embedding', color: 'embed',
+    body: `<p>Standard learned embedding table. Each of ${fmt(CFG.vocab)} tokens has its own row of ${CFG.hidden}.</p>
+           <p class="label">Op</p><div class="formula">h₀[b, s, :] = W_emb[tokens[b, s], :]</div>
+           <p class="label">Shape · params</p>
+           <div class="shape">[${fmt(CFG.vocab)}, ${CFG.hidden}]</div>
+           <div class="params">${fmt(PARAMS.embed)} (${fmtP(PARAMS.embed)})  —  ${(PARAMS.embed/PARAMS.total*100).toFixed(0)}% of the whole model</div>`,
+  },
+  tensorH0: {
+    title: 'Hidden state h₀', color: 'tensor',
+    body: `<p>Sequence of dense vectors, one per token. After this point the model never touches token IDs again.</p>
+           <p class="label">Shape</p><div class="shape">[B, S, ${CFG.hidden}]</div>`,
+  },
+  hcExpand: {
+    title: 'HC expand (1 → 4 copies)', color: 'hc',
+    body: `<p>Hyper-Connections (HC) keep <code>hc_mult = ${CFG.hc_mult}</code> parallel copies of the hidden state per token. Initially all copies are identical.</p>
+           <div class="formula">h_hc = h₀.unsqueeze(2).expand(-1, -1, ${CFG.hc_mult}, -1)</div>
+           <p>Every transformer sub-layer (attention, FFN) then sees a learned mixture of the 4 copies and writes back a learned re-distribution — replacing the usual <code>x + sublayer(x)</code> residual.</p>`,
+  },
+  tensorHHC: {
+    title: 'HC state (4 parallel copies)', color: 'tensor',
+    body: `<p>The four-copy hidden state that flows through the 8 transformer blocks. Drawn as 4 stacked sheets to remind you there are 4 parallel views of every token.</p>
+           <p class="label">Shape</p><div class="shape">[B, S, ${CFG.hc_mult}, ${CFG.hidden}]</div>`,
+  },
+  hcPre: {
+    title: 'HC pre — Sinkhorn-routed mixing', color: 'hc',
+    body: `<p>Reduces the 4-copy state to one vector that the sub-layer (attention or MoE) operates on. Also produces the post-weights and combination matrix used after the sub-layer.</p>
+           <p class="label">Pseudo-code</p>
+           <div class="formula">x_flat   = rmsnorm(h_hc.flatten(-2))
+mixes    = x_flat @ hc_fnᵀ                # [B, S, 24]
+pre, post, comb = sinkhorn_split(
+    mixes, hc_scale, hc_base,
+    iters = ${CFG.hc_sinkhorn_iters},
+)
+y        = (pre.unsqueeze(-1) * h_hc).sum(dim=2)
+         # → [B, S, ${CFG.hidden}]</div>
+           <p>${CFG.hc_sinkhorn_iters} Sinkhorn iterations push <code>comb</code> toward a doubly-stochastic matrix so the 4 copies don't collapse.</p>
+           <p class="label">Params (per HC pre)</p>
+           <div class="params">hc_fn: 24 × ${CFG.hc_mult * CFG.hidden} = ${fmt(PARAMS.hc_fn)}  ·  ×2 per layer (attn + ffn)</div>`,
+  },
+  hcPost: {
+    title: 'HC post — distribute back to 4 copies', color: 'hc',
+    body: `<p>Takes the sub-layer output <code>y</code> and writes a new 4-copy state:</p>
+           <div class="formula">new_state[b, s, i, :] =
+    post[b, s, i] · y[b, s, :]
+  + Σⱼ comb[b, s, i, j] · h_hc[b, s, j, :]</div>
+           <p>Each of the 4 output copies is a per-token-learned mix of the sub-layer's output and the 4 input copies — a generalised residual stream.</p>`,
+  },
+  hcHead: {
+    title: 'hc_head — final contraction', color: 'hc',
+    body: `<p>After 8 blocks, collapse the 4 HC copies back to a single hidden vector that the LM head can read.</p>
+           <div class="formula">pre   = sigmoid(rmsnorm(h_hc.flatten(-2)) @ hc_head_fnᵀ · scale + base)
+h_out = (pre.unsqueeze(-1) * h_hc).sum(dim=2)</div>
+           <p>No Sinkhorn iterations here — a simple sigmoid-weighted average.</p>`,
+  },
+  rmsnorm: {
+    title: 'RMSNorm', color: 'norm',
+    body: `<p>Root-mean-square normalisation with no centering, scale-only learned parameter.</p>
+           <div class="formula">x ← x / √(mean(x²) + ε) · weight</div>
+           <p class="label">Params per RMSNorm</p>
+           <div class="params">just the scale vector (${CFG.hidden} or ${CFG.q_lora} or ${CFG.head_dim} depending on where)</div>`,
+  },
+  wq_a: {
+    title: 'wq_a — Q low-rank, factor A', color: 'attn',
+    body: `<p>Q is factored into two matrices (LoRA-style). <code>wq_a</code> projects into a ${CFG.q_lora}-dim bottleneck.</p>
+           <div class="formula">q_pre = x @ wq_aᵀ   # [B, S, ${CFG.q_lora}]</div>
+           <p class="label">Shape · Params</p>
+           <div class="shape">[${CFG.hidden}, ${CFG.q_lora}]</div>
+           <div class="params">${fmt(PARAMS.wq_a)} parameters</div>`,
+  },
+  wq_b: {
+    title: 'wq_b — Q low-rank, factor B (→ heads)', color: 'attn',
+    body: `<p>Expand the ${CFG.q_lora}-dim bottleneck out to <code>${CFG.num_heads}</code> heads × <code>${CFG.head_dim}</code> dims.</p>
+           <div class="formula">q = q_normed @ wq_bᵀ
+  = q.view(B, S, ${CFG.num_heads}, ${CFG.head_dim})</div>
+           <p>Note: <code>head_dim = ${CFG.head_dim}</code> splits into <code>${CFG.rope_dim}</code> RoPE + <code>${CFG.nope_dim}</code> NoPE dims.</p>
+           <p class="label">Shape · Params</p>
+           <div class="shape">[${CFG.q_lora}, ${CFG.num_heads * CFG.head_dim}]</div>
+           <div class="params">${fmt(PARAMS.wq_b)} parameters</div>`,
+  },
+  wkv: {
+    title: 'wkv — KV projection (1 head, MQA)', color: 'attn',
+    body: `<p>Only one KV head is shared by all ${CFG.num_heads} query heads — multi-query attention. Big KV-cache savings, especially at long context.</p>
+           <div class="formula">kv = x @ wkvᵀ        # [B, 1, S, ${CFG.head_dim}]</div>
+           <p class="label">Shape · Params</p>
+           <div class="shape">[${CFG.hidden}, ${CFG.head_dim}]</div>
+           <div class="params">${fmt(PARAMS.wkv)} parameters</div>`,
+  },
+  wo_a: {
+    title: 'wo_a — grouped output, factor A', color: 'attn',
+    body: `<p>Output is factored AND grouped: split the ${CFG.num_heads * CFG.head_dim}-dim attention output into <code>${CFG.o_groups}</code> groups, project each independently to ${CFG.o_lora} dims via group-specific weights.</p>
+           <div class="formula">attn_out.view(B, S, ${CFG.o_groups}, ${CFG.num_heads*CFG.head_dim/CFG.o_groups})
+  ⊗ wo_a[g]   # einsum bsgd,grd→bsgr</div>
+           <p class="label">Shape · Params</p>
+           <div class="shape">${CFG.o_groups} × [${CFG.num_heads*CFG.head_dim/CFG.o_groups}, ${CFG.o_lora}]</div>
+           <div class="params">${fmt(PARAMS.wo_a)} parameters</div>`,
+  },
+  wo_b: {
+    title: 'wo_b — output projection back to hidden', color: 'attn',
+    body: `<p>Concatenate the ${CFG.o_groups} groups and project back into ${CFG.hidden}-d residual space.</p>
+           <div class="formula">o = concat_groups @ wo_bᵀ   # [B, S, ${CFG.hidden}]</div>
+           <p class="label">Shape · Params</p>
+           <div class="shape">[${CFG.o_groups * CFG.o_lora}, ${CFG.hidden}]</div>
+           <div class="params">${fmt(PARAMS.wo_b)} parameters</div>`,
+  },
+  rope: {
+    title: 'RoPE — rotary positional embedding', color: 'rope',
+    body: `<p>Applied to the last <code>${CFG.rope_dim}</code> dims of Q and K. The first <code>${CFG.nope_dim}</code> dims are left unrotated (NoPE).</p>
+           <div class="formula">[x₁, x₂] → [x₁·cosθ + x₂·sinθ,
+            −x₁·sinθ + x₂·cosθ]</div>
+           <p>θ depends on position and frequency. Uses <code>rope_theta = 10000</code>.</p>`,
+  },
+  derope: {
+    title: 'de-RoPE on the attention output', color: 'rope',
+    body: `<p>nanowhale undoes the RoPE rotation on the attention output (inverse rotation: negate sin) before the output projection. Empirically helps with MQA + low-rank Q/O.</p>`,
+  },
+  sdpa: {
+    title: 'SDPA — scaled dot-product attention', color: 'sdpa',
+    body: `<p>Causal self-attention with a learned per-head sink bias (added in the softmax to prevent attention collapse on early tokens).</p>
+           <div class="formula">scores  = Q @ Kᵀ / √${CFG.head_dim}
+weights = softmax(causal_mask + scores + sink)
+out     = weights @ V</div>
+           <p>The single KV head is broadcast to all ${CFG.num_heads} Q heads (MQA). Implementation uses <code>F.scaled_dot_product_attention</code>.</p>`,
+  },
+  gate: {
+    title: 'MoE gate (router)', color: 'moe',
+    body: `<p>For each token, score all ${CFG.n_routed} routed experts and route to the top <code>${CFG.top_k}</code>.</p>
+           <div class="formula">scores  = x @ gate_weightᵀ
+scores  = softplus(scores).sqrt()  # sqrtsoftplus
+indices = scores.topk(${CFG.top_k}).indices
+weights = scores.gather(-1, indices)
+weights = weights / weights.sum() · ${CFG.routed_scaling_factor}</div>
+           <p class="label">Params</p>
+           <div class="params">${CFG.n_routed} × ${CFG.hidden} = ${fmt(PARAMS.gate)}</div>`,
+  },
+  experts: {
+    title: `Routed experts × ${CFG.n_routed} + ${CFG.n_shared} shared`, color: 'moe',
+    body: `<p>Each expert is a SwiGLU FFN with three matrices <code>w1</code> (gate), <code>w3</code> (up), <code>w2</code> (down).</p>
+           <div class="formula">expert(x) = (silu(x @ w1) * (x @ w3)) @ w2</div>
+           <p>Each token activates <code>top_k = ${CFG.top_k}</code> of the 4 routed experts (≈ 50% sparsity). The shared expert runs unconditionally for every token to give the model a baseline FFN that doesn't depend on routing.</p>
+           <p class="label">Params per expert</p>
+           <div class="params">3 × ${CFG.hidden} × ${CFG.moe_ffn} = ${fmt(PARAMS.expert)}</div>
+           <p class="label">Params per MoE block (gate + 4 routed + 1 shared)</p>
+           <div class="params">${fmt(PARAMS.moe_total)} (${fmtP(PARAMS.moe_total)})</div>`,
+  },
+  combine: {
+    title: 'Combine expert outputs + shared', color: 'moe',
+    body: `<p>Scatter each routed expert's output into the token positions sent to it, weighted by the gate's softmax, then add the shared expert's output.</p>
+           <div class="formula">y = Σᵢ∈routed weightsᵢ · expertᵢ(x_routed_to_i)
+    + shared_expert(x)</div>`,
+  },
+  tensorX: {
+    title: 'Per-sub-layer input', color: 'tensor',
+    body: `<p>The <em>contracted</em> hidden state inside the layer: output of <code>HC pre</code>, normalised, fed into MLA or MoE.</p>
+           <p class="label">Shape</p><div class="shape">[B, S, ${CFG.hidden}]</div>`,
+  },
+  tensorHOut: {
+    title: 'Hidden state after the last block', color: 'tensor',
+    body: `<p>Output of <code>hc_head</code>: the 4 HC copies have been contracted back to a single vector per token.</p>
+           <p class="label">Shape</p><div class="shape">[B, S, ${CFG.hidden}]</div>`,
+  },
+  lmHead: {
+    title: 'lm_head — token-vocabulary projection', color: 'lmhead',
+    body: `<p>Project the final hidden vector back into vocab space. <strong>Not</strong> tied to <code>embed_tokens</code> in this checkpoint.</p>
+           <div class="formula">logits = h_out @ W_lm_headᵀ   # [B, S, ${fmt(CFG.vocab)}]</div>
+           <p class="label">Shape · Params</p>
+           <div class="shape">[${CFG.hidden}, ${fmt(CFG.vocab)}]</div>
+           <div class="params">${fmt(PARAMS.lm_head)} parameters</div>
+           <p>Together with the embedding table, these two matrices account for <strong>${(2*PARAMS.embed/PARAMS.total*100).toFixed(0)}%</strong> of the parameter budget.</p>`,
+  },
+  logits: {
+    title: 'Output logits', color: 'logits',
+    body: `<p>Unnormalised log-probabilities over the vocabulary, per token position.</p>
+           <p class="label">Shape</p><div class="shape">[B, S, ${fmt(CFG.vocab)}]</div>
+           <p>Apply <code>softmax</code> to sample / score; cross-entropy against next-token labels is the pretraining loss.</p>`,
+  },
+};
+
+function selectBlock(b) {
+  SELECTED = b;
+  document.querySelectorAll('.block-wrap .block').forEach(el => el.classList.remove('selected'));
+  const el = document.querySelector(`.block-wrap[data-id="${b.id}"] .block`);
+  if (el) el.classList.add('selected');
+
+  const key = b.detail;
+  const d = DETAILS[key] || {
+    title: b.label || b.id, color: b.color || 'tensor',
+    body: `<p>${b.sub || ''}</p>`,
+  };
+  const colorVar = COLORS[d.color] || COLORS.tensor;
+  document.getElementById('panel-body').innerHTML = `
+    <h2><span class="badge" style="background:${colorVar}"></span>${d.title}</h2>
+    <p class="kind">${b.kind}${b.id.includes('.') ? '  ·  ' + b.id : ''}</p>
+    <div class="desc">${d.body}</div>
+  `;
+}
+
+// ----------------------------------------------------------------------------
+// Header chips
+// ----------------------------------------------------------------------------
+
+function renderChips() {
+  const chips = [
+    ['Params', fmtP(PARAMS.total)],
+    ['Layers', CFG.num_layers],
+    ['Hidden', CFG.hidden],
+    ['HC', CFG.hc_mult],
+    ['Heads', `${CFG.num_heads}/${CFG.num_kv_heads}KV`],
+    ['head_dim', `${CFG.head_dim}=${CFG.rope_dim}+${CFG.nope_dim}`],
+    ['MoE', `${CFG.n_routed}r+${CFG.n_shared}s top-${CFG.top_k}`],
+    ['FFN', CFG.moe_ffn],
+    ['Ctx', fmt(CFG.ctx)],
+    ['Vocab', fmt(CFG.vocab)],
+  ];
+  document.getElementById('chips').innerHTML =
+    chips.map(([k,v]) => `<span class="chip">${k}<b>${v}</b></span>`).join('');
+}
+
+// ----------------------------------------------------------------------------
+// Boot
+// ----------------------------------------------------------------------------
+
+renderChips();
+render();
+initPanZoom();
+
+// Auto-select the embedding block to seed the panel.
+setTimeout(() => {
+  const embed = PIPE.find(b => b.id === 'embed');
+  if (embed) selectBlock(embed);
+}, 50);
 </script>
 </body>
 </html>

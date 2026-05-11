@@ -4,3 +4,7 @@ __pycache__/
 .venv/
 .env
 *.egg-info/
+
+# Playwright screenshot artifacts produced by scripts/viz/e2e_test.py
+scripts/viz/_shot_*.png
+scripts/viz/_shot_*.html

@@ -66,7 +66,20 @@ Live site: **https://zhuyinheng.github.io/nanowhale/** (deployed by
 Actions*.
 
 You can also open `scripts/viz/index.html` directly in any browser (double-click
-— no server needed).
+— no server needed; the ONNX file is fetched from `raw.githubusercontent.com`).
+
+The three tabs are:
+
+1. **Netron (interactive)** — `netron.app` embedded in an iframe. A switch at
+   the top toggles between
+   - *Compute graph* — a 1.2 MB ONNX file (`nanowhale.onnx`) traced from the
+     real model with `export_params=False`, so only the graph structure is
+     present (no weight values). MoE routing is specialised at trace time.
+   - *Weights* — the full 442 MB `model.safetensors` served from the HF Hub.
+2. **Compute graph (SVG)** — module-level overview rendered by `torchview`,
+   with pan/zoom.
+3. **Module tree** — collapsible `nn.Module` / `nn.Parameter` tree with
+   parameter counts and shapes, plus a search box.
 The page has three tabs:
 
 1. **Tensors (Netron)** — embedded [netron.app](https://netron.app) loading the trained

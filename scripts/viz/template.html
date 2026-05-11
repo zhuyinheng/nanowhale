@@ -64,9 +64,20 @@
     position: absolute; top: 10px; right: 14px; z-index: 2;
     background: rgba(15,17,21,0.85); color: var(--muted);
     padding: 7px 12px; border-radius: 8px; font-size: 12px;
-    border: 1px solid var(--line);
+    border: 1px solid var(--line); max-width: 50vw;
   }
   #pane-netron .banner a { margin-left: 8px; }
+  #pane-netron .switch {
+    position: absolute; top: 10px; left: 14px; z-index: 2;
+    background: rgba(15,17,21,0.85); border: 1px solid var(--line);
+    border-radius: 8px; padding: 4px; display: flex; gap: 2px;
+  }
+  #pane-netron .switch button {
+    background: transparent; color: var(--muted); border: 0;
+    padding: 5px 11px; cursor: pointer; font-size: 12px; border-radius: 5px;
+  }
+  #pane-netron .switch button:hover { color: var(--fg); }
+  #pane-netron .switch button.active { background: var(--panel-2); color: var(--fg); }
 
   /* --- Compute graph pane --- */
   #pane-graph { background: #ffffff; overflow: hidden; }
@@ -170,21 +181,21 @@
 </header>
 
 <nav class="tabs">
-  <button class="active" data-tab="netron">🔍 Tensors (Netron, interactive)</button>
-  <button data-tab="graph">📈 Compute graph (overview)</button>
+  <button class="active" data-tab="netron">🔍 Netron (interactive)</button>
+  <button data-tab="graph">📈 Compute graph (SVG)</button>
   <button data-tab="tree">🌳 Module tree</button>
 </nav>
 
 <main>
   <section id="pane-netron" class="pane active">
-    <div class="banner">
-      Live-loaded by <a href="https://netron.app" target="_blank">netron.app</a>
-      from <a href="https://huggingface.co/cmpatino/nanowhale-100m-base/blob/main/model.safetensors" target="_blank">HF safetensors</a> (442 MB, first load may take ~30s).
-      <a href="https://netron.app/?url=https%3A%2F%2Fhuggingface.co%2Fcmpatino%2Fnanowhale-100m-base%2Fresolve%2Fmain%2Fmodel.safetensors" target="_blank">Open full screen ↗</a>
+    <div class="switch" role="tablist">
+      <button class="active" data-src="onnx">Compute graph (ONNX)</button>
+      <button data-src="weights">Weights (safetensors)</button>
     </div>
+    <div class="banner" id="netron-banner"></div>
     <iframe
+      id="netron-frame"
       title="Netron viewer"
-      src="https://netron.app/?url=https%3A%2F%2Fhuggingface.co%2Fcmpatino%2Fnanowhale-100m-base%2Fresolve%2Fmain%2Fmodel.safetensors"
       referrerpolicy="no-referrer"
       sandbox="allow-scripts allow-same-origin allow-downloads allow-popups">
     </iframe>
@@ -260,6 +271,50 @@ document.querySelectorAll('nav.tabs button').forEach(btn => {
     document.getElementById('pane-' + btn.dataset.tab).classList.add('active');
   });
 });
+
+// ---------- Netron source switch ----------
+(function () {
+  // The ONNX file is hosted in the repo. We point Netron at raw.githubusercontent
+  // because GitHub Pages does NOT set CORS headers (and netron.app fetches the
+  // URL cross-origin from inside the iframe). raw.githubusercontent serves
+  // `access-control-allow-origin: *` so Netron can fetch successfully.
+  const SOURCES = {
+    onnx: {
+      url: 'https://raw.githubusercontent.com/zhuyinheng/nanowhale/main/scripts/viz/nanowhale.onnx',
+      banner:
+        'Compute graph — traced from the real model into a 1.2 MB ONNX file (no weight values, ' +
+        '<code>export_params=False</code>). MoE routing was specialised at trace time so the dynamic ' +
+        '<code>if counts[i]==0: continue</code> branch is baked in; the 4 experts may not all be ' +
+        'present depending on the trace input.',
+    },
+    weights: {
+      url: 'https://huggingface.co/cmpatino/nanowhale-100m-base/resolve/main/model.safetensors',
+      banner:
+        'Trained weights — 442 MB <code>model.safetensors</code> served from the HF Hub ' +
+        '(<a href="https://huggingface.co/cmpatino/nanowhale-100m-base" target="_blank">cmpatino/nanowhale-100m-base</a>). ' +
+        'First load may take ~30s. No data-flow edges; tensors only.',
+    },
+  };
+
+  const frame = document.getElementById('netron-frame');
+  const bannerEl = document.getElementById('netron-banner');
+
+  function setSource(key) {
+    const s = SOURCES[key];
+    if (!s) return;
+    frame.src = 'https://netron.app/?url=' + encodeURIComponent(s.url);
+    bannerEl.innerHTML = s.banner +
+      ` &middot; <a href="https://netron.app/?url=${encodeURIComponent(s.url)}" target="_blank">Open full screen ↗</a>`;
+    document.querySelectorAll('#pane-netron .switch button').forEach(b => {
+      b.classList.toggle('active', b.dataset.src === key);
+    });
+  }
+
+  document.querySelectorAll('#pane-netron .switch button').forEach(btn => {
+    btn.addEventListener('click', () => setSource(btn.dataset.src));
+  });
+  setSource('onnx');
+})();
 
 // ---------- compute-graph pan/zoom ----------
 (function () {
